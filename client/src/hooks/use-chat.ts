@@ -356,27 +356,83 @@ ${analysis.disclaimer}
     setIsWaitingForResponse(true);
     
     try {
+      // Add a message to show we're processing the image
+      addMessage("Uploading and analyzing your image...", "bot", true);
+      
       // Upload the image and get the base64 string
       const imageData = await onImageUpload(file);
       
       // Add a confirmation message
       addMessage("Image uploaded successfully", "user");
       
-      // Update user data with basic image info - no AI analysis needed
+      // Update user data with image info
       const updatedData = { 
         ...userData,
         hasImage: "yes",
         imagePath: imageData
       };
-      setUserData(updatedData);
       
-      // Move to next step to show the confirmation - simplified approach
-      const step = chatFlow[currentStep];
-      const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-      if (nextStepId) processStep(nextStepId);
+      // Now let's try to analyze the image with OpenAI
+      try {
+        console.log("Attempting to analyze foot image with OpenAI");
+        const response = await fetch('/api/analyze-foot-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageBase64: imageData.replace(/^data:image\/\w+;base64,/, '')
+          }),
+        });
+        
+        // Clear the typing indicator message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        if (!response.ok) {
+          console.error("API error:", response.status);
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const analysisData = await response.json();
+        console.log("Received image analysis:", analysisData);
+        
+        // Save analysis data
+        updatedData.footAnalysis = analysisData;
+        setUserData(updatedData);
+        
+        // Add a success message
+        addMessage("Thank you! I've analyzed your foot image and I'll provide some insights.", "bot");
+        
+        // Proceed to the analysis results step
+        processStep("image_analysis_results");
+        return;
+        
+      } catch (analysisError) {
+        console.error("Error analyzing image with OpenAI:", analysisError);
+        // Clear any typing indicators
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        // Show error message
+        addMessage("I was able to upload your image, but I'm having trouble analyzing it right now. Let's continue with the consultation.", "bot");
+        
+        // Still save the image data
+        setUserData(updatedData);
+        
+        // Move to next step without analysis
+        const step = chatFlow[currentStep];
+        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+        if (nextStepId) {
+          setTimeout(() => {
+            processStep(nextStepId);
+          }, 1000); 
+        }
+      }
       
     } catch (error) {
       console.error("Error processing image:", error);
+      // Clear any typing indicators
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      
       addMessage("I couldn't process your image properly. Let's continue with the consultation without it.", "bot");
       
       // Still move to next step even if upload fails
@@ -391,26 +447,86 @@ ${analysis.disclaimer}
     }
   }, [currentStep, userData, onImageUpload, addMessage, processStep]);
 
-  // Handle symptom analysis - simplified to avoid OpenAI API calls
+  // Handle symptom analysis
   const handleSymptomAnalysis = useCallback(async (symptoms: string) => {
     setIsWaitingForResponse(true);
     
     try {
-      // Store only the user description without AI analysis
+      // Add a message to show we're analyzing
+      addMessage("Analyzing your symptoms...", "bot", true);
+      
+      // Add the user's message
+      addMessage(symptoms, "user");
+      
+      // Store the symptom description in user data
       const updatedData = { 
         ...userData,
         hasSymptomDescription: "yes",
         symptomDescription: symptoms
       };
-      setUserData(updatedData);
       
-      // Move directly to the next step
-      const step = chatFlow[currentStep];
-      const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-      if (nextStepId) processStep(nextStepId);
+      // Now try to analyze the symptoms with OpenAI
+      try {
+        console.log("Attempting to analyze symptoms with OpenAI");
+        const response = await fetch('/api/analyze-symptoms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            symptoms: symptoms
+          }),
+        });
+        
+        // Clear the typing indicator message
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        if (!response.ok) {
+          console.error("API error:", response.status);
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const analysisData = await response.json();
+        console.log("Received symptom analysis:", analysisData);
+        
+        // Save analysis data
+        updatedData.symptomAnalysisResults = analysisData;
+        setUserData(updatedData);
+        
+        // Add a success message
+        addMessage("Thank you for describing your symptoms. I've analyzed them and will provide some insights.", "bot");
+        
+        // Proceed to the analysis results step
+        processStep("symptom_analysis_results");
+        return;
+        
+      } catch (analysisError) {
+        console.error("Error analyzing symptoms with OpenAI:", analysisError);
+        // Clear any typing indicators
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        // Show error message
+        addMessage("I've recorded your symptoms, but I'm having trouble analyzing them right now. Let's continue with the consultation.", "bot");
+        
+        // Still save the symptom data
+        setUserData(updatedData);
+        
+        // Move to next step without analysis
+        const step = chatFlow[currentStep];
+        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+        if (nextStepId) {
+          setTimeout(() => {
+            processStep(nextStepId);
+          }, 1000);
+        }
+      }
       
     } catch (error) {
       console.error("Error processing symptoms:", error);
+      // Clear any typing indicators
+      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      
+      addMessage("I couldn't process your symptom description. Let's continue with the consultation.", "bot");
       
       // Move to next step even if there's an error
       const step = chatFlow[currentStep];
