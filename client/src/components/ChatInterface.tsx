@@ -4,6 +4,7 @@ import ChatMessage from "@/components/ChatMessage";
 import ChatOptions from "@/components/ChatOptions";
 import UserInput from "@/components/UserInput";
 import { Button } from "@/components/ui/button";
+import NurseAvatar from "@/components/NurseAvatar";
 import type { Consultation } from "@shared/schema";
 
 interface ChatInterfaceProps {
@@ -62,22 +63,7 @@ export default function ChatInterface({
     <div className="w-full max-w-lg bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-[650px] md:h-[700px]">
       {/* Chat Header */}
       <div className="bg-primary px-6 py-4 flex items-center shadow-md">
-        <div className="relative h-10 w-10 rounded-full overflow-hidden bg-white flex items-center justify-center shadow-inner">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="h-7 w-7 text-primary" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={1.5}
-              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" 
-            />
-          </svg>
-        </div>
+        <NurseAvatar size="md" />
         <div className="ml-3">
           <h2 className="text-white font-semibold text-lg">Fiona</h2>
           <p className="text-primary-light text-sm">FootCare Clinic Nurse</p>
