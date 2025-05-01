@@ -1,7 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const { Pool } = require('pg');
+const { conversationFlow, getResponseForCurrentStep } = require('./conversationFlow');
+const { pool, saveConsultation, isSessionComplete } = require('./db-utils');
 require('dotenv').config();
 
 // Initialize Express app
@@ -10,10 +11,7 @@ const app = express();
 // Middleware for parsing JSON bodies
 app.use(bodyParser.json());
 
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
+// Database connection is initialized in db-utils.js
 
 // WhatsApp API configuration
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v18.0/';
@@ -165,6 +163,17 @@ async function updateUserSession(phoneNumber, nextStep, message = null) {
       'UPDATE whatsapp_sessions SET current_step = $1, data = $2, updated_at = NOW() WHERE phone_number = $3',
       [nextStep, JSON.stringify(data), phoneNumber]
     );
+    
+    // If the session has reached a completion point, save as a consultation
+    if (isSessionComplete(nextStep)) {
+      console.log(`Session reached completion step: ${nextStep}. Saving consultation.`);
+      try {
+        await saveConsultation(data, phoneNumber);
+      } catch (saveError) {
+        console.error('Error saving consultation:', saveError);
+        // Continue even if saving the consultation fails
+      }
+    }
   } catch (error) {
     console.error('Error updating user session:', error);
     throw error;
