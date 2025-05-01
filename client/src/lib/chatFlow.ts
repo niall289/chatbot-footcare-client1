@@ -35,21 +35,30 @@ export const chatFlow: ChatFlow = {
     input: "text",
     validation: (value) => nameSchema.safeParse(value).success,
     errorMessage: "Please enter your name (at least 2 characters)",
-    next: "phone"
+    next: (value) => {
+      // Store the name and always go to phone step
+      return "phone";
+    }
   },
   phone: {
     message: "Great! Now, could you please provide your phone number?",
     input: "tel",
     validation: (value) => phoneSchema.safeParse(value).success,
     errorMessage: "Please enter a valid phone number (10-15 digits)",
-    next: "email"
+    next: (value) => {
+      // Always go to email - never go back to name
+      return "email";
+    }
   },
   email: {
     message: "Thank you! Please share your email address:",
     input: "email",
     validation: (value) => emailSchema.safeParse(value).success,
     errorMessage: "Please enter a valid email address",
-    next: "preferred_clinic"
+    next: (value) => {
+      // Always go to clinic selection - never go back to name or phone
+      return "preferred_clinic";
+    }
   },
   preferred_clinic: {
     message: "Which of our locations would you prefer to visit?",
@@ -59,7 +68,10 @@ export const chatFlow: ChatFlow = {
       { text: "Sandyford", value: "sandyford" },
       { text: "Not sure yet", value: "undecided" }
     ],
-    next: "upload_image_prompt"
+    next: (value) => {
+      // Always proceed forward - never go backward in the flow
+      return "upload_image_prompt";
+    }
   },
   upload_image_prompt: {
     message: "Would you like to upload a photo of your foot concern? This can help us provide a more accurate assessment.",
