@@ -27,7 +27,12 @@ export interface ChatFlow {
 export const chatFlow: ChatFlow = {
   welcome: {
     message: "👋 Hello! I'm Fiona, your FootCare Clinic virtual assistant. I'll help gather some information about your foot concerns and connect you with our specialists.",
-    next: "name"
+    next: "intro"
+  },
+  intro: {
+    message: "Before we begin, I'll need to collect some basic information. Rest assured, your data is kept private and secure.",
+    next: "name",
+    delay: 1000
   },
   name: {
     message: "What's your name?",

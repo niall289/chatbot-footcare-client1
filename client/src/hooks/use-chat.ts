@@ -190,17 +190,21 @@ ${analysis.disclaimer}
       return;
     }
     
-    // Standard message handling
+    // Standard message handling with auto-complete typing
+    const typingTimeoutMS = 1500; // Default typing animation time
+    
+    // Add a message with typing indicator
     addMessage(step.message, "bot", true);
     
-    // Replace with actual message after delay
+    // Replace with actual message after typing delay
     setTimeout(() => {
       setMessages(prev => {
         const newMessages = [...prev];
         const lastIndex = newMessages.length - 1;
         if (lastIndex >= 0 && newMessages[lastIndex].isTyping) {
           newMessages[lastIndex] = {
-            ...newMessages[lastIndex],
+            text: step.message,
+            type: "bot",
             isTyping: false
           };
         }
