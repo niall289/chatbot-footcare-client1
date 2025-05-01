@@ -96,9 +96,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Analyze foot image using OpenAI
   app.post(`${apiPrefix}/analyze-foot-image`, async (req, res) => {
+    // Set a timeout for the request (15 seconds)
+    const TIMEOUT_MS = 15000;
+    let isResponseSent = false;
+    
+    // Create timeout handler
+    const timeoutId = setTimeout(() => {
+      if (!isResponseSent) {
+        isResponseSent = true;
+        console.log('Image analysis timed out after', TIMEOUT_MS, 'ms');
+        return res.status(408).json({ 
+          error: 'Request timeout', 
+          message: 'Image analysis took too long to complete',
+          fallback: {
+            condition: "Unable to analyze image at this time",
+            severity: "unknown",
+            recommendations: [
+              "Continue with the consultation",
+              "Describe your symptoms in detail",
+              "Visit a clinic for in-person assessment"
+            ],
+            disclaimer: "This is a fallback response due to a timeout. Please visit the clinic for proper assessment."
+          }
+        });
+      }
+    }, TIMEOUT_MS);
+    
     try {
       // Validate request body
       if (!req.body || !req.body.imageBase64) {
+        clearTimeout(timeoutId);
+        isResponseSent = true;
         return res.status(400).json({ error: "Image data is required" });
       }
 
@@ -121,21 +149,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      return res.status(200).json(analysis);
+      // Clear the timeout as we're responding now
+      clearTimeout(timeoutId);
+      
+      if (!isResponseSent) {
+        isResponseSent = true;
+        return res.status(200).json(analysis);
+      }
     } catch (error) {
       console.error('Error analyzing foot image:', error);
-      return res.status(500).json({ 
-        error: 'Failed to analyze image', 
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      
+      // Clear the timeout since we're responding with an error
+      clearTimeout(timeoutId);
+      
+      if (!isResponseSent) {
+        isResponseSent = true;
+        return res.status(500).json({ 
+          error: 'Failed to analyze image', 
+          message: error instanceof Error ? error.message : 'Unknown error',
+          fallback: {
+            condition: "Unable to analyze image at this time",
+            severity: "unknown",
+            recommendations: [
+              "Continue with the consultation",
+              "Describe your symptoms in detail",
+              "Visit a clinic for in-person assessment"
+            ],
+            disclaimer: "This is a fallback response due to an API error. Please visit the clinic for proper assessment."
+          }
+        });
+      }
     }
   });
 
   // Analyze symptoms using AI
   app.post(`${apiPrefix}/analyze-symptoms`, async (req, res) => {
+    // Set a timeout for the request (15 seconds)
+    const TIMEOUT_MS = 15000;
+    let isResponseSent = false;
+    
+    // Create timeout handler
+    const timeoutId = setTimeout(() => {
+      if (!isResponseSent) {
+        isResponseSent = true;
+        console.log('Symptom analysis timed out after', TIMEOUT_MS, 'ms');
+        return res.status(408).json({ 
+          error: 'Request timeout', 
+          message: 'Symptom analysis took too long to complete',
+          fallback: {
+            potentialConditions: ["Unable to analyze symptoms at this time"],
+            severity: "unknown",
+            urgency: "unknown",
+            recommendation: "Please continue the consultation and visit the clinic for a thorough assessment",
+            nextSteps: [
+              "Provide detailed symptom information",
+              "Book an appointment with a specialist",
+              "Avoid self-diagnosis"
+            ],
+            disclaimer: "This is a fallback response due to a timeout. Please visit the clinic for proper assessment."
+          }
+        });
+      }
+    }, TIMEOUT_MS);
+    
     try {
       // Validate request body
       if (!req.body || !req.body.symptoms) {
+        clearTimeout(timeoutId);
+        isResponseSent = true;
         return res.status(400).json({ error: "Symptom description is required" });
       }
 
@@ -158,13 +239,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      return res.status(200).json(analysis);
+      // Clear the timeout as we're responding now
+      clearTimeout(timeoutId);
+      
+      if (!isResponseSent) {
+        isResponseSent = true;
+        return res.status(200).json(analysis);
+      }
     } catch (error) {
       console.error('Error analyzing symptoms:', error);
-      return res.status(500).json({ 
-        error: 'Failed to analyze symptoms', 
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      
+      // Clear the timeout since we're responding with an error
+      clearTimeout(timeoutId);
+      
+      if (!isResponseSent) {
+        isResponseSent = true;
+        return res.status(500).json({ 
+          error: 'Failed to analyze symptoms', 
+          message: error instanceof Error ? error.message : 'Unknown error',
+          fallback: {
+            potentialConditions: ["Unable to analyze symptoms at this time"],
+            severity: "unknown",
+            urgency: "unknown",
+            recommendation: "Please continue the consultation and visit the clinic for a thorough assessment",
+            nextSteps: [
+              "Provide detailed symptom information", 
+              "Book an appointment with a specialist",
+              "Avoid self-diagnosis"
+            ],
+            disclaimer: "This is a fallback response due to an API error. Please visit the clinic for proper assessment."
+          }
+        });
+      }
     }
   });
 

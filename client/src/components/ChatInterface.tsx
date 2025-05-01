@@ -97,6 +97,14 @@ export default function ChatInterface({
         </div>
       </div>
       
+      {/* Patient Journey Tracker */}
+      {currentStep && currentStep !== 'welcome' && (
+        <PatientJourneyTracker 
+          currentChatStep={currentStep} 
+          className="mx-4 mt-4"
+        />
+      )}
+      
       {/* Chat Messages Container */}
       <div 
         ref={chatContainerRef}
