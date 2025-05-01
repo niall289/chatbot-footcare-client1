@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@/hooks/use-chat";
-import ChatMessage from "@/components/ChatMessage";
-import ChatOptions from "@/components/ChatOptions";
-import UserInput from "@/components/UserInput";
+import ChatMessage from "./ChatMessage";
+import ChatOptions from "./ChatOptions";
+import UserInput from "./UserInput";
 import { Button } from "@/components/ui/button";
-import NurseAvatar from "@/components/NurseAvatar";
+import NurseAvatar from "./NurseAvatar";
 import type { Consultation } from "@shared/schema";
 
 interface ChatInterfaceProps {
