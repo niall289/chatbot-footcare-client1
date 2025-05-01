@@ -3,6 +3,7 @@ import { useChat } from "@/hooks/use-chat";
 import ChatMessage from "./ChatMessage";
 import ChatOptions from "./ChatOptions";
 import UserInput from "./UserInput";
+import ImageUploader from "./ImageUploader";
 import { Button } from "@/components/ui/button";
 import NurseAvatar from "./NurseAvatar";
 import type { Consultation } from "@shared/schema";
@@ -31,11 +32,13 @@ export default function ChatInterface({
     messages,
     options,
     inputType,
+    showImageUpload,
     currentData,
     isInputDisabled,
     isWaitingForResponse,
     handleUserInput,
     handleOptionSelect,
+    handleImageUpload,
     validate,
     currentStep
   } = useChat({
@@ -49,6 +52,22 @@ export default function ChatInterface({
       if (currentStep === "whatsapp_handoff") {
         setShowWhatsAppButton(true);
       }
+    },
+    onImageUpload: async (file) => {
+      // Convert the file to a base64 string
+      return new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64String = reader.result as string;
+          // The image will be stored as base64 for now
+          // In a production environment, you'd likely upload this to a server
+          resolve(base64String);
+        };
+        reader.onerror = () => {
+          reject(new Error("Failed to read file"));
+        };
+        reader.readAsDataURL(file);
+      });
     }
   });
   
@@ -98,14 +117,21 @@ export default function ChatInterface({
       
       {/* User Input Area */}
       <div className="p-4 border-t border-gray-200 bg-white">
-        <UserInput
-          type={inputType}
-          disabled={isInputDisabled}
-          isWaiting={isWaitingForResponse}
-          onSubmit={handleUserInput}
-          validate={validate}
-          currentData={currentData}
-        />
+        {showImageUpload ? (
+          <ImageUploader
+            onImageUpload={handleImageUpload}
+            disabled={isWaitingForResponse}
+          />
+        ) : (
+          <UserInput
+            type={inputType}
+            disabled={isInputDisabled}
+            isWaiting={isWaitingForResponse}
+            onSubmit={handleUserInput}
+            validate={validate}
+            currentData={currentData}
+          />
+        )}
         
         {/* WhatsApp Transfer button */}
         {showWhatsAppButton && (

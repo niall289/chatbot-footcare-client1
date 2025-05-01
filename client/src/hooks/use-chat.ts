@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { chatFlow, chatStepToField, type ChatOption } from "@/lib/chatFlow";
 import { nameSchema, phoneSchema, emailSchema } from "@shared/schema";
 
@@ -28,8 +28,8 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
     setMessages(prev => [...prev, { text, type, isTyping }]);
   }, []);
   
-  // Forward declaration for processStep
-  const processStepRef = useCallback((stepId: string) => {}, []);
+  // Forward declaration for processStep using useRef
+  const processStepRef = useRef<(stepId: string) => void>(() => {});
   
   // Update user data and save to parent component
   const updateUserData = useCallback((step: string, value: string, displayValue: string) => {
@@ -71,7 +71,7 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
       setOptions(null);
       setInputType(null);
       const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-      if (nextStepId) processStepRef(nextStepId);
+      if (nextStepId) processStepRef.current(nextStepId);
     }
     
     setIsWaitingForResponse(false);
