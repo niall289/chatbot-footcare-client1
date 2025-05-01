@@ -23,6 +23,7 @@ export const consultations = pgTable("consultations", {
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   email: text("email").notNull(),
+  preferredClinic: text("preferred_clinic"),
   issueCategory: text("issue_category").notNull(),
   issueSpecifics: text("issue_specifics"),
   painDuration: text("pain_duration"),
@@ -31,6 +32,7 @@ export const consultations = pgTable("consultations", {
   previousTreatment: text("previous_treatment"),
   transferredToWhatsApp: text("transferred_to_whatsapp"),
   hasImage: text("has_image"),
+  imagePath: text("image_path"),
   imageAnalysis: json("image_analysis").$type<{
     condition: string,
     severity: string,

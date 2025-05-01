@@ -9,6 +9,7 @@ export type ChatStep = {
   message: string;
   delay?: number;
   input?: 'text' | 'tel' | 'email' | 'textarea';
+  imageUpload?: boolean;
   validation?: (value: string) => boolean;
   errorMessage?: string;
   options?: ChatOption[];
@@ -52,7 +53,39 @@ export const chatFlow: ChatFlow = {
     input: "email",
     validation: (value) => emailSchema.safeParse(value).success,
     errorMessage: "Please enter a valid email address",
-    next: "issue_category"
+    next: "preferred_clinic"
+  },
+  preferred_clinic: {
+    message: "Which of our locations would you prefer to visit?",
+    options: [
+      { text: "Dublin City Centre", value: "dublin_city" },
+      { text: "Dundrum", value: "dundrum" },
+      { text: "Sandyford", value: "sandyford" },
+      { text: "Not sure yet", value: "undecided" }
+    ],
+    next: "upload_image_prompt"
+  },
+  upload_image_prompt: {
+    message: "Would you like to upload a photo of your foot concern? This can help us provide a more accurate assessment.",
+    options: [
+      { text: "Yes, I'll upload an image", value: "yes" },
+      { text: "No, I prefer not to", value: "no" }
+    ],
+    next: (value) => {
+      if (value === "yes") return "image_upload_instructions";
+      return "issue_category";
+    }
+  },
+  image_upload_instructions: {
+    message: "Great! Please upload a clear photo of your foot concern. The image should be well-lit and show the affected area clearly. For privacy, avoid including any identifiable features or personal information in the photo.",
+    imageUpload: true,
+    next: "image_upload_confirmation",
+    delay: 1000
+  },
+  image_upload_confirmation: {
+    message: "Thank you for uploading your image. Our system will analyze it to provide better insights for your consultation.",
+    next: "issue_category",
+    delay: 1500
   },
   issue_category: {
     message: "What type of foot concern brings you to our clinic today?",
@@ -204,6 +237,8 @@ export const chatStepToField: Record<string, string> = {
   name: "name",
   phone: "phone",
   email: "email",
+  preferred_clinic: "preferredClinic",
+  upload_image_prompt: "hasImage",
   issue_category: "issueCategory",
   pain_specifics: "issueSpecifics",
   skin_specifics: "issueSpecifics",
