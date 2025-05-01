@@ -59,6 +59,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Internal server error' });
     }
   });
+  
+  // Get all consultations with pagination
+  app.get(`${apiPrefix}/consultations`, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const consultations = await storage.getAllConsultations(page, limit);
+      return res.status(200).json(consultations);
+    } catch (error) {
+      console.error('Error fetching consultations:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
   // Get a consultation by ID
   app.get(`${apiPrefix}/consultations/:id`, async (req, res) => {
@@ -154,6 +168,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export all consultations to CSV
+  app.get(`${apiPrefix}/consultations/export/csv`, async (_req, res) => {
+    try {
+      const consultations = await storage.getAllConsultations();
+      if (!consultations || consultations.length === 0) {
+        return res.status(404).json({ error: 'No consultations found' });
+      }
+
+      const csvFilePath = await exportConsultationsToCSV(consultations);
+      
+      // Send the file for download
+      return res.download(csvFilePath, path.basename(csvFilePath), (err) => {
+        if (err) {
+          console.error('Error sending CSV file:', err);
+          return res.status(500).json({ error: 'Failed to download CSV file' });
+        }
+        
+        // Clean up the file after sending (optional)
+        // fs.unlinkSync(csvFilePath);
+      });
+    } catch (error) {
+      console.error('Error exporting consultations to CSV:', error);
+      return res.status(500).json({ error: 'Failed to export consultations' });
+    }
+  });
+
   // Transfer conversation to WhatsApp
   app.post(`${apiPrefix}/consultations/:id/transfer-to-whatsapp`, async (req, res) => {
     try {
@@ -183,32 +223,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error transferring to WhatsApp:', error);
       return res.status(500).json({ error: 'Internal server error' });
-    }
-  });
-
-  // Export all consultations to CSV
-  app.get(`${apiPrefix}/consultations/export/csv`, async (_req, res) => {
-    try {
-      const consultations = await storage.getAllConsultations();
-      if (!consultations || consultations.length === 0) {
-        return res.status(404).json({ error: 'No consultations found' });
-      }
-
-      const csvFilePath = await exportConsultationsToCSV(consultations);
-      
-      // Send the file for download
-      return res.download(csvFilePath, path.basename(csvFilePath), (err) => {
-        if (err) {
-          console.error('Error sending CSV file:', err);
-          return res.status(500).json({ error: 'Failed to download CSV file' });
-        }
-        
-        // Clean up the file after sending (optional)
-        // fs.unlinkSync(csvFilePath);
-      });
-    } catch (error) {
-      console.error('Error exporting consultations to CSV:', error);
-      return res.status(500).json({ error: 'Failed to export consultations' });
     }
   });
 

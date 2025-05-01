@@ -75,6 +75,12 @@ export default function Home() {
               </div>
             </div>
           </div>
+          
+          <div className="mt-8 text-center text-xs text-gray-400">
+            <Link href="/admin" className="hover:text-gray-600 transition-colors cursor-pointer">
+              Admin Access
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
