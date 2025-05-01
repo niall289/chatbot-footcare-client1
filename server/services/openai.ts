@@ -71,6 +71,22 @@ export async function analyzeFootImage(imageBase64: string): Promise<{
     };
   } catch (error) {
     console.error("Error analyzing foot image:", error);
+    
+    // Return a fallback response to keep the chat flow going
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("Using fallback response for development environment");
+      return {
+        condition: "Unable to analyze image at this time",
+        severity: "unknown",
+        recommendations: [
+          "Continue with the consultation",
+          "Describe your symptoms in detail",
+          "Visit a clinic for in-person assessment"
+        ],
+        disclaimer: "This is a fallback response due to an API issue. Please visit the clinic for proper assessment."
+      };
+    }
+    
     throw new Error("Failed to analyze image. Please try again later.");
   }
 }

@@ -62,6 +62,24 @@ export async function analyzeSymptoms(symptoms: string): Promise<{
     };
   } catch (error) {
     console.error("Error analyzing symptoms:", error);
+    
+    // Return a fallback response to keep the chat flow going
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("Using fallback response for development environment");
+      return {
+        potentialConditions: ["Unable to analyze symptoms at this time"],
+        severity: "unknown",
+        urgency: "unknown",
+        recommendation: "Please continue the consultation and visit the clinic for a thorough assessment",
+        nextSteps: [
+          "Provide detailed symptom information",
+          "Book an appointment with a specialist",
+          "Avoid self-diagnosis"
+        ],
+        disclaimer: "This is a fallback response due to an API issue. Please visit the clinic for proper assessment."
+      };
+    }
+    
     throw new Error(`Failed to analyze symptoms: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
