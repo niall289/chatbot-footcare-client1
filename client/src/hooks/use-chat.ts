@@ -397,8 +397,11 @@ ${analysis.disclaimer}
         console.log("Received image analysis:", analysisData);
         
         // Save analysis data
-        updatedData.footAnalysis = analysisData;
-        setUserData(updatedData);
+        const updatedWithAnalysis = { 
+          ...updatedData,
+          footAnalysis: analysisData 
+        };
+        setUserData(updatedWithAnalysis);
         
         // Add a success message
         addMessage("Thank you! I've analyzed your foot image and I'll provide some insights.", "bot");
@@ -490,8 +493,11 @@ ${analysis.disclaimer}
         console.log("Received symptom analysis:", analysisData);
         
         // Save analysis data
-        updatedData.symptomAnalysisResults = analysisData;
-        setUserData(updatedData);
+        const updatedWithAnalysis = {
+          ...updatedData,
+          symptomAnalysisResults: analysisData
+        };
+        setUserData(updatedWithAnalysis);
         
         // Add a success message
         addMessage("Thank you for describing your symptoms. I've analyzed them and will provide some insights.", "bot");
