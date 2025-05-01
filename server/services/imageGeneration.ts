@@ -51,7 +51,11 @@ export async function generateNurseImage(): Promise<string> {
     }
     
     // Save the image to cache
-    fs.writeFileSync(cachePath, Buffer.from(imageData, "base64"));
+    if (imageData) {
+      fs.writeFileSync(cachePath, Buffer.from(imageData, "base64"));
+    } else {
+      throw new Error("No image data received from OpenAI");
+    }
     
     return imageData;
   } catch (error) {
