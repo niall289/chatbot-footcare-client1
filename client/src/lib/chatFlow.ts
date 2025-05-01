@@ -63,9 +63,9 @@ export const chatFlow: ChatFlow = {
   preferred_clinic: {
     message: "Which of our locations would you prefer to visit?",
     options: [
-      { text: "Dublin City Centre", value: "dublin_city" },
-      { text: "Dundrum", value: "dundrum" },
-      { text: "Sandyford", value: "sandyford" },
+      { text: "Donnycarney", value: "donnycarney" },
+      { text: "Palmerstown", value: "palmerstown" },
+      { text: "Baldoyle", value: "baldoyle" },
       { text: "Not sure yet", value: "undecided" }
     ],
     next: (value) => {
@@ -258,7 +258,7 @@ export const chatFlow: ChatFlow = {
     next: "end"
   },
   provide_phone: {
-    message: "You can reach our clinic at (555) 123-4567 during our operating hours: Monday-Friday 9am-5pm. Thank you for contacting FootCare Clinic!",
+    message: "You can reach our clinic at 01 851 4444 during our operating hours: Monday-Friday 9am-5pm. Thank you for contacting FootCare Clinic!",
     next: "end"
   },
   end: {
