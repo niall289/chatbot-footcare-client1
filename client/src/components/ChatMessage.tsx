@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useEffect, useState } from "react";
 import NurseAvatar from "./NurseAvatar";
 
 interface ChatMessageProps {
@@ -8,12 +8,28 @@ interface ChatMessageProps {
 }
 
 const ChatMessage: FC<ChatMessageProps> = ({ message, type, isTyping = false }) => {
+  // To prevent persistent typing indicators, let's add a timeout
+  const [isStillTyping, setIsStillTyping] = useState(isTyping);
+  
+  useEffect(() => {
+    setIsStillTyping(isTyping);
+    
+    // If it's typing, set a maximum timeout to prevent it getting stuck
+    if (isTyping) {
+      const timer = setTimeout(() => {
+        setIsStillTyping(false);
+      }, 5000); // Max 5 seconds of typing animation
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isTyping]);
+
   if (type === "bot") {
     return (
       <div className="flex items-start mb-4">
         <NurseAvatar size="sm" />
         <div className="ml-3 bg-white rounded-lg py-2 px-4 max-w-[80%] shadow-sm bounce-in">
-          {isTyping ? (
+          {isStillTyping ? (
             <div className="typing-indicator">
               <span></span>
               <span></span>

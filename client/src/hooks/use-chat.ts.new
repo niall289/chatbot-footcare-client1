@@ -36,17 +36,18 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
     // Map step to database field
     const field = chatStepToField[step];
     
-    // Make a fresh copy of userData to avoid reference issues
+    // Create a new object with the updated data
     const updatedData = { ...userData };
     if (field) {
       updatedData[field] = value;
+      console.log(`Updated ${field} with value: ${value}`);
     }
     
     // Update conversation log
     const updatedLog = [...conversationLog, { step, response: value }];
     setConversationLog(updatedLog);
     
-    // Update the userData state
+    // Update state with new data
     setUserData(updatedData);
     
     // Determine if this is a complete submission point
@@ -84,8 +85,8 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
     const step = chatFlow[stepId];
     if (!step) return;
     
-    // Clear any previous typing indicators first
-    setMessages(prev => prev.map(msg => ({...msg, isTyping: false})));
+    // Clear any previous typing indicators before adding new messages
+    setMessages(prev => prev.map(msg => ({ ...msg, isTyping: false })));
     
     setCurrentStep(stepId);
     
@@ -93,11 +94,24 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
     if (stepId === "image_analysis_results" && userData.footAnalysis) {
       const analysis = userData.footAnalysis;
       
-      // Show bot message
-      addMessage(step.message, "bot");
+      // Show bot message with typing indicator
+      addMessage(step.message, "bot", true);
       
-      // Display the analysis results after a short delay
+      // Replace with actual message after delay
       setTimeout(() => {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastIndex = newMessages.length - 1;
+          if (lastIndex >= 0 && newMessages[lastIndex].isTyping) {
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              isTyping: false
+            };
+          }
+          return newMessages;
+        });
+        
+        // Display the analysis results
         const analysisMessage = `
 Based on my analysis, it appears you may have ${analysis.condition} 
 (${analysis.severity} severity).
@@ -108,17 +122,20 @@ ${analysis.recommendations.map((rec: string) => `• ${rec}`).join('\n')}
 ${analysis.disclaimer}
         `;
         
-        addMessage(analysisMessage.trim(), "bot");
-        
-        // Move to the next step
-        if (step.delay) {
-          setTimeout(() => {
+        // Add the analysis message after a short delay
+        setTimeout(() => {
+          addMessage(analysisMessage.trim(), "bot");
+          
+          // Move to the next step
+          if (step.delay) {
+            setTimeout(() => {
+              setupStepInput(step);
+            }, step.delay);
+          } else {
             setupStepInput(step);
-          }, step.delay);
-        } else {
-          setupStepInput(step);
-        }
-      }, 1000);
+          }
+        }, 1000);
+      }, 1500);
       
       return;
     }
@@ -127,11 +144,24 @@ ${analysis.disclaimer}
     if (stepId === "symptom_analysis_results" && userData.symptomAnalysisResults) {
       const analysis = userData.symptomAnalysisResults;
       
-      // Show bot message
-      addMessage(step.message, "bot");
+      // Show bot message with typing indicator
+      addMessage(step.message, "bot", true);
       
-      // Display the analysis results after a short delay
+      // Replace with actual message after delay
       setTimeout(() => {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastIndex = newMessages.length - 1;
+          if (lastIndex >= 0 && newMessages[lastIndex].isTyping) {
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              isTyping: false
+            };
+          }
+          return newMessages;
+        });
+        
+        // Display the analysis results
         const conditionsText = analysis.potentialConditions.length > 1 
           ? `Based on your symptoms, you may have one of the following conditions: ${analysis.potentialConditions.join(", ")}`
           : `Based on your symptoms, you may have ${analysis.potentialConditions[0]}`;
@@ -148,26 +178,46 @@ ${analysis.nextSteps.map((step: string) => `• ${step}`).join('\n')}
 ${analysis.disclaimer}
         `;
         
-        addMessage(analysisMessage, "bot");
-        
-        // Handle next steps
-        if (step.delay) {
-          setTimeout(() => {
+        // Add the analysis message after a short delay
+        setTimeout(() => {
+          addMessage(analysisMessage, "bot");
+          
+          // Handle next steps
+          if (step.delay) {
+            setTimeout(() => {
+              setupStepInput(step);
+            }, step.delay);
+          } else {
             setupStepInput(step);
-          }, step.delay);
-        } else {
-          setupStepInput(step);
-        }
-      }, 1000);
+          }
+        }, 1000);
+      }, 1500);
       
       return;
     }
     
-    // Standard message handling
-    addMessage(step.message, "bot");
+    // Standard message handling with auto-complete typing
+    const typingTimeoutMS = 1500; // Default typing animation time
     
-    // Handle next steps after a short delay
+    // Add a message with typing indicator
+    addMessage(step.message, "bot", true);
+    
+    // Replace with actual message after typing delay
     setTimeout(() => {
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastIndex = newMessages.length - 1;
+        if (lastIndex >= 0 && newMessages[lastIndex].isTyping) {
+          newMessages[lastIndex] = {
+            text: step.message,
+            type: "bot",
+            isTyping: false
+          };
+        }
+        return newMessages;
+      });
+      
+      // Handle next steps
       if (step.end) {
         setOptions(null);
         setInputType(null);
@@ -181,7 +231,7 @@ ${analysis.disclaimer}
       } else {
         setupStepInput(step);
       }
-    }, 500);
+    }, 1500);
   }, [addMessage, setupStepInput, userData]);
   
   // Update the ref to the actual processStep function
