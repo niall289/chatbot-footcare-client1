@@ -81,16 +81,23 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
   
   // Process a step in the chat flow
   const processStep = useCallback((stepId: string) => {
-    const step = chatFlow[stepId];
+    // Safety check - prevent going back to asking name if we already have it
+    let safeStepId = stepId;
+    if (stepId === "name" && userData.name) {
+      console.log("Prevented duplicate name request in processStep - redirecting to phone step");
+      safeStepId = "phone";
+    }
+    
+    const step = chatFlow[safeStepId];
     if (!step) return;
     
     // Clear any previous typing indicators first
     setMessages(prev => prev.map(msg => ({...msg, isTyping: false})));
     
-    setCurrentStep(stepId);
+    setCurrentStep(safeStepId);
     
     // Custom handling for image analysis results
-    if (stepId === "image_analysis_results" && userData.footAnalysis) {
+    if (safeStepId === "image_analysis_results" && userData.footAnalysis) {
       const analysis = userData.footAnalysis;
       
       // Show bot message
@@ -210,10 +217,18 @@ ${analysis.disclaimer}
     
     // Move to next step
     setTimeout(() => {
-      const nextStepId = typeof step.next === 'function' ? step.next(option.value) : step.next;
+      // Get the next step ID but validate it's not asking for the name again
+      let nextStepId = typeof step.next === 'function' ? step.next(option.value) : step.next;
+      
+      // Special validation: prevent going back to asking name after we have it
+      if (nextStepId === "name" && userData.name) {
+        console.log("Prevented duplicate name request in options - redirecting to phone step");
+        nextStepId = "phone";
+      }
+      
       if (nextStepId) processStep(nextStepId);
     }, 500);
-  }, [currentStep, addMessage, processStep, updateUserData]);
+  }, [currentStep, addMessage, processStep, updateUserData, userData]);
   
   // Handle user submitting input
   const handleUserInput = useCallback((value: string) => {
@@ -231,10 +246,18 @@ ${analysis.disclaimer}
     
     // Move to next step
     setTimeout(() => {
-      const nextStepId = typeof step.next === 'function' ? step.next(value) : step.next;
+      // Get the next step ID but validate it's not asking for the name again
+      let nextStepId = typeof step.next === 'function' ? step.next(value) : step.next;
+      
+      // Special validation: prevent going back to asking name after we have it
+      if (nextStepId === "name" && userData.name) {
+        console.log("Prevented duplicate name request - redirecting to phone step");
+        nextStepId = "phone";
+      }
+      
       if (nextStepId) processStep(nextStepId);
     }, 500);
-  }, [currentStep, addMessage, processStep, updateUserData]);
+  }, [currentStep, addMessage, processStep, updateUserData, userData]);
   
   // Validation function for form inputs
   const validate = useCallback((value: string) => {
