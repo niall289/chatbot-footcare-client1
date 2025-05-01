@@ -3,10 +3,22 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { z } from "zod";
+import { generateNurseImage } from "./services/imageGeneration";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for the chatbot
   const apiPrefix = "/api";
+  
+  // Nurse image endpoint - returns AI-generated image of Fiona
+  app.get(`${apiPrefix}/nurse-image`, async (_req, res) => {
+    try {
+      const imageBase64 = await generateNurseImage();
+      res.json({ imageBase64 });
+    } catch (error) {
+      console.error("Error serving nurse image:", error);
+      res.status(500).json({ error: "Failed to generate nurse image" });
+    }
+  });
 
   // Create a new consultation
   app.post(`${apiPrefix}/consultations`, async (req, res) => {
