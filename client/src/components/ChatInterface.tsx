@@ -46,6 +46,7 @@ export default function ChatInterface({
     validate,
     currentStep
   } = useChat({
+    consultationId,
     onSaveData: (data, isComplete) => {
       if (isComplete && !consultationId) {
         onCreateConsultation(data);

@@ -11,9 +11,10 @@ interface Message {
 interface UseChatProps {
   onSaveData: (data: Record<string, any>, isComplete: boolean) => void;
   onImageUpload?: (file: File) => Promise<string>;
+  consultationId?: number | null;
 }
 
-export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
+export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentStep, setCurrentStep] = useState("welcome");
   const [options, setOptions] = useState<ChatOption[] | null>(null);
@@ -372,16 +373,28 @@ ${analysis.disclaimer}
         imagePath: imageData
       };
       
+      // Show a processing message
+      addMessage("Processing your foot image. This may take a moment...", "bot");
+      
       // Now let's try to analyze the image with OpenAI
       try {
         console.log("Attempting to analyze foot image with OpenAI");
+        
+        // Clear any previous typing indicators
+        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        
+        // Show a typing indicator while processing
+        addMessage("Analyzing your foot condition...", "bot", true);
+        
+        // Call the API for image analysis
         const response = await fetch('/api/analyze-foot-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            imageBase64: imageData.replace(/^data:image\/\w+;base64,/, '')
+            imageBase64: imageData.replace(/^data:image\/\w+;base64,/, ''),
+            consultationId: typeof consultationId === 'number' ? consultationId : undefined
           }),
         });
         
@@ -389,30 +402,53 @@ ${analysis.disclaimer}
         setMessages(prev => prev.filter(msg => !msg.isTyping));
         
         if (!response.ok) {
-          console.error("API error:", response.status);
+          console.error("API error:", response.status, await response.text());
           throw new Error(`API error: ${response.status}`);
         }
         
         const analysisData = await response.json();
         console.log("Received image analysis:", analysisData);
         
-        // Save analysis data
+        // Check if we received a fallback response or an actual analysis
+        const isRealAnalysis = 
+          analysisData.condition !== "Unable to analyze image at this time" && 
+          analysisData.severity !== "unknown";
+        
+        // Save analysis data regardless of whether it's a fallback or not
         const updatedWithAnalysis = { 
           ...updatedData,
           footAnalysis: analysisData 
         };
         setUserData(updatedWithAnalysis);
         
-        // Add a message about the image being received
-        addMessage("Thank you for sharing your image. Our system has received it and it will be available to our specialists during your consultation. For a complete and accurate assessment, our podiatrists will need to examine your foot in person.", "bot");
-        
-        // Wait briefly before continuing to the next step
-        setTimeout(() => {
-          // Go directly to the next step in the flow
+        if (isRealAnalysis) {
+          // If we got real analysis, move to the image_analysis_results step
+          // The AnalysisResults component will display the detailed analysis there
           const step = chatFlow[currentStep];
           const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
           if (nextStepId) processStep(nextStepId);
-        }, 1500);
+        } else {
+          // If we got a fallback, show an error message and continue
+          addMessage("I was able to upload your image, but couldn't analyze it in detail at this time. Let's continue with your consultation.", "bot");
+          
+          // Skip the image_analysis_results step and go straight to the next step
+          const step = chatFlow[currentStep];
+          const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+          if (nextStepId === "image_analysis_results") {
+            // Skip ahead to the step after image_analysis_results
+            const skipStep = chatFlow["image_analysis_results"];
+            const skipToStepId = typeof skipStep.next === 'function' ? skipStep.next("") : skipStep.next;
+            
+            setTimeout(() => {
+              if (skipToStepId) processStep(skipToStepId);
+            }, 1500);
+          } else if (nextStepId) {
+            setTimeout(() => {
+              processStep(nextStepId);
+            }, 1500);
+          }
+        }
+        
         return;
         
       } catch (analysisError) {
@@ -426,14 +462,10 @@ ${analysis.disclaimer}
         // Still save the image data
         setUserData(updatedData);
         
-        // Move to next step without analysis
-        const step = chatFlow[currentStep];
-        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-        if (nextStepId) {
-          setTimeout(() => {
-            processStep(nextStepId);
-          }, 1000); 
-        }
+        // Skip the image_analysis_results step and go straight to issue_category
+        setTimeout(() => {
+          processStep("issue_category");
+        }, 1500);
       }
       
     } catch (error) {
