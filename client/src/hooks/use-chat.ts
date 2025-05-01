@@ -10,21 +10,74 @@ interface Message {
 
 interface UseChatProps {
   onSaveData: (data: Record<string, any>, isComplete: boolean) => void;
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
-export function useChat({ onSaveData }: UseChatProps) {
+export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentStep, setCurrentStep] = useState("welcome");
   const [options, setOptions] = useState<ChatOption[] | null>(null);
   const [inputType, setInputType] = useState<'text' | 'tel' | 'email' | 'textarea' | null>(null);
+  const [showImageUpload, setShowImageUpload] = useState(false);
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [userData, setUserData] = useState<Record<string, any>>({});
   const [conversationLog, setConversationLog] = useState<{step: string, response: string}[]>([]);
   
+  // Add a message to the chat
   const addMessage = useCallback((text: string, type: "bot" | "user", isTyping = false) => {
     setMessages(prev => [...prev, { text, type, isTyping }]);
   }, []);
   
+  // Forward declaration for processStep
+  const processStepRef = useCallback((stepId: string) => {}, []);
+  
+  // Update user data and save to parent component
+  const updateUserData = useCallback((step: string, value: string, displayValue: string) => {
+    // Map step to database field
+    const field = chatStepToField[step];
+    
+    const updatedData = { ...userData };
+    if (field) {
+      updatedData[field] = value;
+    }
+    
+    // Update conversation log
+    const updatedLog = [...conversationLog, { step, response: value }];
+    setConversationLog(updatedLog);
+    
+    setUserData(updatedData);
+    
+    // Determine if this is a complete submission point
+    const isComplete = step === "previous_treatment" || step === "transfer_whatsapp";
+    
+    // Call parent callback with data
+    onSaveData({ 
+      ...updatedData, 
+      conversationLog: updatedLog 
+    }, isComplete);
+  }, [userData, conversationLog, onSaveData]);
+
+  // Handle setup for the current step's input type
+  const setupStepInput = useCallback((step: any) => {
+    setShowImageUpload(!!step.imageUpload);
+    
+    if (step.options) {
+      setOptions(step.options);
+      setInputType(null);
+    } else if (step.input) {
+      setInputType(step.input);
+      setOptions(null);
+    } else if (!step.imageUpload) {
+      setOptions(null);
+      setInputType(null);
+      const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+      if (nextStepId) processStepRef(nextStepId);
+    }
+    
+    setIsWaitingForResponse(false);
+  }, [processStepRef]);
+  
+  // Process a step in the chat flow
   const processStep = useCallback((stepId: string) => {
     const step = chatFlow[stepId];
     if (!step) return;
@@ -63,23 +116,11 @@ export function useChat({ onSaveData }: UseChatProps) {
         setupStepInput(step);
       }
     }, 1500);
-  }, [addMessage]);
+  }, [addMessage, setupStepInput]);
   
-  const setupStepInput = useCallback((step: any) => {
-    if (step.options) {
-      setOptions(step.options);
-      setInputType(null);
-    } else if (step.input) {
-      setInputType(step.input);
-      setOptions(null);
-    } else {
-      setOptions(null);
-      setInputType(null);
-      const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-      processStep(nextStepId);
-    }
-    
-    setIsWaitingForResponse(false);
+  // Update the ref to the actual processStep function
+  useEffect(() => {
+    processStepRef.current = processStep;
   }, [processStep]);
   
   // Start the conversation
@@ -104,9 +145,9 @@ export function useChat({ onSaveData }: UseChatProps) {
     // Move to next step
     setTimeout(() => {
       const nextStepId = typeof step.next === 'function' ? step.next(option.value) : step.next;
-      processStep(nextStepId);
+      if (nextStepId) processStep(nextStepId);
     }, 500);
-  }, [currentStep, addMessage, processStep]);
+  }, [currentStep, addMessage, processStep, updateUserData]);
   
   // Handle user submitting input
   const handleUserInput = useCallback((value: string) => {
@@ -125,35 +166,9 @@ export function useChat({ onSaveData }: UseChatProps) {
     // Move to next step
     setTimeout(() => {
       const nextStepId = typeof step.next === 'function' ? step.next(value) : step.next;
-      processStep(nextStepId);
+      if (nextStepId) processStep(nextStepId);
     }, 500);
-  }, [currentStep, addMessage, processStep]);
-  
-  // Update user data and save to parent component
-  const updateUserData = useCallback((step: string, value: string, displayValue: string) => {
-    // Map step to database field
-    const field = chatStepToField[step];
-    
-    const updatedData = { ...userData };
-    if (field) {
-      updatedData[field] = value;
-    }
-    
-    // Update conversation log
-    const updatedLog = [...conversationLog, { step, response: value }];
-    setConversationLog(updatedLog);
-    
-    setUserData(updatedData);
-    
-    // Determine if this is a complete submission point
-    const isComplete = step === "previous_treatment" || step === "transfer_whatsapp";
-    
-    // Call parent callback with data
-    onSaveData({ 
-      ...updatedData, 
-      conversationLog: updatedLog 
-    }, isComplete);
-  }, [userData, conversationLog, onSaveData]);
+  }, [currentStep, addMessage, processStep, updateUserData]);
   
   // Validation function for form inputs
   const validate = useCallback((value: string) => {
@@ -195,15 +210,57 @@ export function useChat({ onSaveData }: UseChatProps) {
     return { isValid: true };
   }, [currentStep, inputType]);
   
+  // Handle image uploads
+  const handleImageUpload = useCallback(async (file: File) => {
+    if (!onImageUpload) {
+      console.error("Image upload not supported");
+      return;
+    }
+
+    setIsWaitingForResponse(true);
+    
+    try {
+      // Upload the image and get the path
+      const imagePath = await onImageUpload(file);
+      
+      // Update user data
+      const updatedData = { 
+        ...userData,
+        hasImage: "yes",
+        imagePath 
+      };
+      setUserData(updatedData);
+      
+      // Add a confirmation message
+      addMessage("Image uploaded successfully", "user");
+      
+      // Move to next step
+      const step = chatFlow[currentStep];
+      setTimeout(() => {
+        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+        if (nextStepId) processStep(nextStepId);
+      }, 500);
+      
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      addMessage("There was an error uploading your image. Please try again.", "bot");
+    } finally {
+      setShowImageUpload(false);
+      setIsWaitingForResponse(false);
+    }
+  }, [currentStep, userData, onImageUpload, addMessage, processStep]);
+
   return {
     messages,
     options,
     inputType,
+    showImageUpload,
     currentData: userData,
     isInputDisabled: isWaitingForResponse || inputType === null,
     isWaitingForResponse,
     handleUserInput,
     handleOptionSelect,
+    handleImageUpload,
     validate,
     currentStep
   };
