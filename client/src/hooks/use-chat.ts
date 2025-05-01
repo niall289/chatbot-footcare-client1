@@ -341,6 +341,76 @@ ${analysis.disclaimer}
     }
   }, [currentStep, userData, onImageUpload, addMessage, processStep]);
 
+  // Handle symptom analysis
+  const handleSymptomAnalysis = useCallback(async (symptoms: string) => {
+    setIsWaitingForResponse(true);
+    
+    try {
+      // Show analysis message
+      addMessage("Analyzing your symptoms...", "bot");
+      
+      // Send the symptoms for analysis
+      const response = await fetch('/api/analyze-symptoms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          symptoms,
+          consultationId: userData.id
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Symptom analysis failed');
+      }
+      
+      const analysisResult = await response.json();
+      
+      // Update user data with analysis results
+      const updatedData = { 
+        ...userData,
+        hasSymptomDescription: "yes",
+        symptomDescription: symptoms,
+        symptomAnalysis: JSON.stringify(analysisResult)
+      };
+      setUserData(updatedData);
+      
+      // Store the analysis results for later use
+      const analysisData = {
+        potentialConditions: analysisResult.potentialConditions,
+        severity: analysisResult.severity,
+        urgency: analysisResult.urgency,
+        recommendation: analysisResult.recommendation,
+        nextSteps: analysisResult.nextSteps,
+        disclaimer: analysisResult.disclaimer
+      };
+      
+      // Save the analysis data for later use in the conversation
+      const currentUserData = { ...userData };
+      currentUserData.symptomAnalysisResults = analysisData;
+      setUserData(currentUserData);
+      
+      // Move to next step to show the analysis
+      const step = chatFlow[currentStep];
+      const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+      if (nextStepId) processStep(nextStepId);
+      
+    } catch (error) {
+      console.error("Error analyzing symptoms:", error);
+      addMessage("I couldn't properly analyze your symptoms. Let's continue with the consultation anyway.", "bot");
+      
+      // Still move to next step even if analysis fails
+      const step = chatFlow[currentStep];
+      setTimeout(() => {
+        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+        if (nextStepId) processStep(nextStepId);
+      }, 1500);
+    } finally {
+      setIsWaitingForResponse(false);
+    }
+  }, [currentStep, userData, addMessage, processStep]);
+
   return {
     messages,
     options,
@@ -352,6 +422,7 @@ ${analysis.disclaimer}
     handleUserInput,
     handleOptionSelect,
     handleImageUpload,
+    handleSymptomAnalysis,
     validate,
     currentStep
   };
