@@ -84,7 +84,57 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
     
     setCurrentStep(stepId);
     
-    // Show bot message with typing indicator
+    // Custom handling for image analysis results
+    if (stepId === "image_analysis_results" && userData.footAnalysis) {
+      const analysis = userData.footAnalysis;
+      
+      // Show bot message with typing indicator
+      addMessage(step.message, "bot", true);
+      
+      // Replace with actual message after delay
+      setTimeout(() => {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastIndex = newMessages.length - 1;
+          if (lastIndex >= 0 && newMessages[lastIndex].isTyping) {
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              isTyping: false
+            };
+          }
+          return newMessages;
+        });
+        
+        // Display the analysis results
+        const analysisMessage = `
+Based on my analysis, it appears you may have ${analysis.condition} 
+(${analysis.severity} severity).
+
+Recommendations:
+${analysis.recommendations.map((rec: string) => `• ${rec}`).join('\n')}
+
+${analysis.disclaimer}
+        `;
+        
+        // Add the analysis message after a short delay
+        setTimeout(() => {
+          addMessage(analysisMessage.trim(), "bot");
+          
+          // Move to the next step
+          if (step.delay) {
+            setTimeout(() => {
+              setupStepInput(step);
+            }, step.delay);
+          } else {
+            setupStepInput(step);
+          }
+        }, 1000);
+      }, 1500);
+      
+      return;
+    }
+    
+    // Standard message handling
     addMessage(step.message, "bot", true);
     
     // Replace with actual message after delay
@@ -116,7 +166,7 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
         setupStepInput(step);
       }
     }, 1500);
-  }, [addMessage, setupStepInput]);
+  }, [addMessage, setupStepInput, userData]);
   
   // Update the ref to the actual processStep function
   useEffect(() => {
@@ -256,25 +306,24 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
       };
       setUserData(updatedData);
       
-      // Display analysis results to the user
-      const analysisMessage = `
-Based on my analysis, it appears you may have ${analysisResult.condition} 
-(${analysisResult.severity} severity).
-
-Recommendations:
-${analysisResult.recommendations.map((rec: string) => `• ${rec}`).join('\n')}
-
-${analysisResult.disclaimer}
-      `;
+      // Store the analysis results for later use
+      const analysisData = {
+        condition: analysisResult.condition,
+        severity: analysisResult.severity,
+        recommendations: analysisResult.recommendations,
+        disclaimer: analysisResult.disclaimer
+      };
       
-      addMessage(analysisMessage.trim(), "bot");
+      // Save the analysis data for later use in the conversation
+      // We'll show the detailed analysis when we reach the "image_analysis_results" step
+      const currentUserData = { ...userData };
+      currentUserData.footAnalysis = analysisData;
+      setUserData(currentUserData);
       
-      // Move to next step after showing the analysis
-      setTimeout(() => {
-        const step = chatFlow[currentStep];
-        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-        if (nextStepId) processStep(nextStepId);
-      }, 3000);
+      // Move to next step to show the confirmation
+      const step = chatFlow[currentStep];
+      const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+      if (nextStepId) processStep(nextStepId);
       
     } catch (error) {
       console.error("Error analyzing image:", error);

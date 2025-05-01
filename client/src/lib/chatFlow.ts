@@ -83,7 +83,17 @@ export const chatFlow: ChatFlow = {
     delay: 1000
   },
   image_upload_confirmation: {
-    message: "Thank you for uploading your image. Our system will analyze it to provide better insights for your consultation.",
+    message: "Thank you for uploading your image. Our AI system is analyzing your foot condition to provide better insights for your consultation. This usually takes a few seconds...",
+    next: "image_analysis_results",
+    delay: 2000
+  },
+  image_analysis_results: {
+    message: "I've analyzed your foot image, and here's what I can see:",
+    next: "image_analysis_recommendations",
+    delay: 1500
+  },
+  image_analysis_recommendations: {
+    message: "Based on this analysis, I recommend discussing this with our specialists when you visit. The information you've provided will help them prepare for your appointment.",
     next: "issue_category",
     delay: 1500
   },
