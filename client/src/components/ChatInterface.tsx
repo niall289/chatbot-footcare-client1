@@ -28,6 +28,7 @@ export default function ChatInterface({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
   
+  // Use a stable chat hook instance
   const {
     messages,
     options,
