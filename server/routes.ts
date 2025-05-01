@@ -6,6 +6,8 @@ import { z } from "zod";
 import { generateNurseImage } from "./services/imageGeneration";
 import { analyzeFootImage } from "./services/openai";
 import { analyzeSymptoms } from "./services/symptomAnalysis";
+import { exportConsultationsToCSV, exportSingleConsultationToCSV } from "./services/csvExport";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for the chatbot
@@ -181,6 +183,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error transferring to WhatsApp:', error);
       return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Export all consultations to CSV
+  app.get(`${apiPrefix}/consultations/export/csv`, async (_req, res) => {
+    try {
+      const consultations = await storage.getAllConsultations();
+      if (!consultations || consultations.length === 0) {
+        return res.status(404).json({ error: 'No consultations found' });
+      }
+
+      const csvFilePath = await exportConsultationsToCSV(consultations);
+      
+      // Send the file for download
+      return res.download(csvFilePath, path.basename(csvFilePath), (err) => {
+        if (err) {
+          console.error('Error sending CSV file:', err);
+          return res.status(500).json({ error: 'Failed to download CSV file' });
+        }
+        
+        // Clean up the file after sending (optional)
+        // fs.unlinkSync(csvFilePath);
+      });
+    } catch (error) {
+      console.error('Error exporting consultations to CSV:', error);
+      return res.status(500).json({ error: 'Failed to export consultations' });
+    }
+  });
+
+  // Export a single consultation to CSV
+  app.get(`${apiPrefix}/consultations/:id/export/csv`, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid ID format' });
+      }
+
+      const consultation = await storage.getConsultationById(id);
+      if (!consultation) {
+        return res.status(404).json({ error: 'Consultation not found' });
+      }
+
+      const csvFilePath = await exportSingleConsultationToCSV(consultation);
+      
+      // Send the file for download
+      return res.download(csvFilePath, path.basename(csvFilePath), (err) => {
+        if (err) {
+          console.error('Error sending CSV file:', err);
+          return res.status(500).json({ error: 'Failed to download CSV file' });
+        }
+        
+        // Clean up the file after sending (optional)
+        // fs.unlinkSync(csvFilePath);
+      });
+    } catch (error) {
+      console.error('Error exporting consultation to CSV:', error);
+      return res.status(500).json({ error: 'Failed to export consultation' });
     }
   });
 

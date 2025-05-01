@@ -23,19 +23,19 @@ export async function exportConsultationsToCSV(consultations: Consultation[]): P
     header: [
       { id: 'id', title: 'ID' },
       { id: 'createdAt', title: 'Date Created' },
-      { id: 'updatedAt', title: 'Last Updated' },
-      { id: 'patientName', title: 'Patient Name' },
-      { id: 'patientEmail', title: 'Email' },
-      { id: 'patientPhone', title: 'Phone' },
-      { id: 'clinicLocation', title: 'Clinic Location' },
-      { id: 'symptoms', title: 'Symptoms' },
-      { id: 'symptomDuration', title: 'Symptom Duration' },
-      { id: 'painLevel', title: 'Pain Level' },
-      { id: 'previousTreatments', title: 'Previous Treatments' },
-      { id: 'imageAnalysisResults', title: 'Image Analysis Results' },
-      { id: 'symptomAnalysisResults', title: 'Symptom Analysis Results' },
-      { id: 'appointmentPreference', title: 'Appointment Preference' },
-      { id: 'isComplete', title: 'Consultation Complete' },
+      { id: 'name', title: 'Patient Name' },
+      { id: 'email', title: 'Email' },
+      { id: 'phone', title: 'Phone' },
+      { id: 'preferredClinic', title: 'Clinic Location' },
+      { id: 'issueCategory', title: 'Issue Category' },
+      { id: 'issueSpecifics', title: 'Issue Details' },
+      { id: 'painDuration', title: 'Pain Duration' },
+      { id: 'painSeverity', title: 'Pain Level' },
+      { id: 'previousTreatment', title: 'Previous Treatments' },
+      { id: 'additionalInfo', title: 'Additional Information' },
+      { id: 'imageAnalysis', title: 'Image Analysis Results' },
+      { id: 'symptomDescription', title: 'Symptom Description' },
+      { id: 'symptomAnalysis', title: 'Symptom Analysis Results' },
       { id: 'transferredToWhatsApp', title: 'Transferred to WhatsApp' }
     ]
   });
@@ -45,16 +45,18 @@ export async function exportConsultationsToCSV(consultations: Consultation[]): P
     return {
       ...consultation,
       createdAt: consultation.createdAt ? new Date(consultation.createdAt).toLocaleString() : '',
-      updatedAt: consultation.updatedAt ? new Date(consultation.updatedAt).toLocaleString() : '',
-      isComplete: consultation.isComplete ? 'Yes' : 'No',
-      transferredToWhatsApp: consultation.transferredToWhatsApp ? 'Yes' : 'No',
-      // Parse JSON fields if they're stored as strings
-      imageAnalysisResults: typeof consultation.imageAnalysisResults === 'string' 
-        ? consultation.imageAnalysisResults 
-        : JSON.stringify(consultation.imageAnalysisResults),
-      symptomAnalysisResults: typeof consultation.symptomAnalysisResults === 'string'
-        ? consultation.symptomAnalysisResults
-        : JSON.stringify(consultation.symptomAnalysisResults)
+      transferredToWhatsApp: consultation.transferredToWhatsApp === 'yes' ? 'Yes' : 'No',
+      // Format JSON fields for CSV
+      imageAnalysis: consultation.imageAnalysis 
+        ? (typeof consultation.imageAnalysis === 'string' 
+            ? consultation.imageAnalysis 
+            : JSON.stringify(consultation.imageAnalysis))
+        : '',
+      symptomAnalysis: consultation.symptomAnalysis
+        ? (typeof consultation.symptomAnalysis === 'string'
+            ? consultation.symptomAnalysis
+            : JSON.stringify(consultation.symptomAnalysis))
+        : ''
     };
   });
   
