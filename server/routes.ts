@@ -96,8 +96,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Analyze foot image using OpenAI
   app.post(`${apiPrefix}/analyze-foot-image`, async (req, res) => {
-    // Set a timeout for the request (15 seconds)
-    const TIMEOUT_MS = 15000;
+    // Set a timeout for the request (30 seconds - longer timeout for image analysis)
+    const TIMEOUT_MS = 30000;
     let isResponseSent = false;
     
     // Create timeout handler
@@ -123,18 +123,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }, TIMEOUT_MS);
     
     try {
+      console.log("=== Starting foot image analysis ===");
+      
       // Validate request body
       if (!req.body || !req.body.imageBase64) {
         clearTimeout(timeoutId);
         isResponseSent = true;
+        console.error("Missing imageBase64 in request body");
         return res.status(400).json({ error: "Image data is required" });
+      }
+
+      // Check if the API key is available
+      if (!process.env.OPENAI_API_KEY) {
+        console.error("OPENAI_API_KEY is not set in the environment");
+        clearTimeout(timeoutId);
+        isResponseSent = true;
+        return res.status(500).json({ 
+          error: 'Configuration error', 
+          message: 'OpenAI API key is not configured',
+          fallback: {
+            condition: "System configuration error",
+            severity: "unknown",
+            recommendations: [
+              "Please contact support to resolve this issue",
+              "Continue with the consultation without image analysis",
+              "Visit a clinic for in-person assessment"
+            ],
+            disclaimer: "This is a fallback response due to a configuration error. Please visit the clinic for proper assessment."
+          }
+        });
       }
 
       const imageBase64 = req.body.imageBase64.replace(/^data:image\/\w+;base64,/, '');
       const consultationId = req.body.consultationId;
       
+      // Verify the image is properly encoded base64
+      try {
+        Buffer.from(imageBase64, 'base64');
+        console.log("Image validation successful - valid base64 encoding");
+      } catch (e) {
+        console.error("Invalid base64 encoding in image data", e);
+        clearTimeout(timeoutId);
+        isResponseSent = true;
+        return res.status(400).json({ error: "Invalid image data" });
+      }
+      
+      console.log("Calling OpenAI API for image analysis...");
+      
       // Analyze the image using OpenAI
       const analysis = await analyzeFootImage(imageBase64);
+      
+      console.log("Image analysis successful:", analysis);
       
       // If a consultation ID is provided, save the analysis to the consultation
       if (consultationId) {
@@ -145,6 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.updateConsultation(id, {
               imageAnalysis: JSON.stringify(analysis)
             });
+            console.log("Saved analysis to consultation ID:", id);
           }
         }
       }
@@ -154,16 +194,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!isResponseSent) {
         isResponseSent = true;
+        console.log("=== Foot image analysis completed successfully ===");
         return res.status(200).json(analysis);
       }
     } catch (error) {
-      console.error('Error analyzing foot image:', error);
+      // Enhanced error logging
+      console.error('Error analyzing foot image:');
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        if ('status' in error) {
+          console.error('OpenAI API Error Status:', (error as any).status);
+          
+          if ((error as any).status === 429) {
+            console.error("RATE LIMIT ERROR: You've exceeded your current quota");
+          } else if ((error as any).status === 400) {
+            console.error("BAD REQUEST: Invalid parameters or format");
+          }
+        }
+      } else {
+        console.error('Unknown error object:', error);
+      }
       
       // Clear the timeout since we're responding with an error
       clearTimeout(timeoutId);
       
       if (!isResponseSent) {
         isResponseSent = true;
+        console.log("=== Foot image analysis failed ===");
         return res.status(500).json({ 
           error: 'Failed to analyze image', 
           message: error instanceof Error ? error.message : 'Unknown error',

@@ -7,6 +7,7 @@ import ImageUploader from "./ImageUploader";
 import { Button } from "@/components/ui/button";
 import NurseAvatar from "./NurseAvatar";
 import PatientJourneyTracker from "./PatientJourneyTracker";
+import AnalysisResults from "./AnalysisResults";
 import type { Consultation } from "@shared/schema";
 
 interface ChatInterfaceProps {
@@ -122,6 +123,16 @@ export default function ChatInterface({
           
           {options && options.length > 0 && (
             <ChatOptions options={options} onSelect={handleOptionSelect} />
+          )}
+          
+          {/* Display AnalysisResults when foot image analysis is available */}
+          {currentData && currentData.footAnalysis && currentStep === "image_analysis_results" && (
+            <div className="mt-4">
+              <AnalysisResults 
+                analysis={currentData.footAnalysis}
+                className="animate-fadeIn"
+              />
+            </div>
           )}
         </div>
       </div>
