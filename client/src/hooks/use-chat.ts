@@ -403,11 +403,16 @@ ${analysis.disclaimer}
         };
         setUserData(updatedWithAnalysis);
         
-        // Add a success message
-        addMessage("Thank you! I've analyzed your foot image and I'll provide some insights.", "bot");
+        // Add a message about the image being received
+        addMessage("Thank you for sharing your image. Our system has received it and it will be available to our specialists during your consultation. For a complete and accurate assessment, our podiatrists will need to examine your foot in person.", "bot");
         
-        // Proceed to the analysis results step
-        processStep("image_analysis_results");
+        // Wait briefly before continuing to the next step
+        setTimeout(() => {
+          // Go directly to the next step in the flow
+          const step = chatFlow[currentStep];
+          const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+          if (nextStepId) processStep(nextStepId);
+        }, 1500);
         return;
         
       } catch (analysisError) {
