@@ -91,9 +91,14 @@ export const chatFlow: ChatFlow = {
     delay: 1000
   },
   image_analysis_results: {
-    message: "Thank you for sharing your image. Our system has received it and it will be available to our specialists during your consultation. For a complete and accurate assessment, our podiatrists will need to examine your foot in person.",
+    message: "Thank you for sharing your image. Our AI system has analyzed it, but for a complete and accurate assessment, our podiatrists will need to examine your foot in person during your consultation.",
+    next: "image_analysis_confirmation",
+    delay: 8000
+  },
+  image_analysis_confirmation: {
+    message: "Based on this preliminary AI analysis, I've noted your foot condition in our system. Let's continue with a few more questions to ensure we provide the best care for your needs.",
     next: "issue_category",
-    delay: 2000
+    delay: 3000
   },
   issue_category: {
     message: "What type of foot concern brings you to our clinic today?",

@@ -127,7 +127,8 @@ export default function ChatInterface({
           )}
           
           {/* Display AnalysisResults when foot image analysis is available */}
-          {currentData && currentData.footAnalysis && currentStep === "image_analysis_results" && (
+          {currentData && currentData.footAnalysis && 
+            (currentStep === "image_analysis_results" || currentStep === "image_analysis_confirmation") && (
             <div className="mt-4">
               <AnalysisResults 
                 analysis={currentData.footAnalysis}
