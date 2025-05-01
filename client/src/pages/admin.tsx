@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getQueryFn } from '@/lib/queryClient';
 import { Consultation } from '@shared/schema';
@@ -7,16 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import ExportButton from '@/components/ExportButton';
+import AdminAuth from '@/components/AdminAuth';
 import { formatDate } from '@/lib/utils';
 
 export default function Admin() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Check if already authenticated via session storage on component mount
+  useEffect(() => {
+    const authStatus = sessionStorage.getItem('isAdminAuthenticated');
+    if (authStatus === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
-  // Fetch consultation data
+  // Fetch consultation data - only run query when authenticated
   const { data: consultations, isLoading, error } = useQuery({
     queryKey: ['/api/consultations', page, pageSize],
     queryFn: getQueryFn<Consultation[]>({ on401: 'throw' }),
+    enabled: isAuthenticated, // Only fetch data if authenticated
   });
 
   // Handle pagination
@@ -29,7 +40,13 @@ export default function Admin() {
       setPage(page + 1);
     }
   };
+  
+  // Show auth screen if not authenticated
+  if (!isAuthenticated) {
+    return <AdminAuth onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
 
+  // Show admin dashboard if authenticated
   return (
     <div className="container mx-auto py-8">
       <Card>
@@ -40,7 +57,18 @@ export default function Admin() {
               View and export patient consultation data
             </CardDescription>
           </div>
-          <ExportButton className="ml-auto" />
+          <div className="flex gap-2">
+            <ExportButton className="ml-auto" />
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                sessionStorage.removeItem('isAdminAuthenticated');
+                setIsAuthenticated(false);
+              }}
+            >
+              Logout
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

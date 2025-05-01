@@ -29,13 +29,7 @@ export default function Home() {
               </Button>
             </Link>
             
-            <div className="mt-4">
-              <Link href="/admin">
-                <Button variant="outline" className="w-full">
-                  Admin Dashboard
-                </Button>
-              </Link>
-            </div>
+            {/* Admin access removed from public view */}
           </div>
           
           <div className="space-y-4 mt-8">
@@ -84,11 +78,7 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="mt-8 text-center text-xs text-gray-400">
-            <Link href="/admin" className="hover:text-gray-600 transition-colors cursor-pointer">
-              Admin Access
-            </Link>
-          </div>
+          {/* Admin link removed for security */}
         </CardContent>
       </Card>
     </div>
