@@ -220,30 +220,72 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
     setIsWaitingForResponse(true);
     
     try {
-      // Upload the image and get the path
-      const imagePath = await onImageUpload(file);
-      
-      // Update user data
-      const updatedData = { 
-        ...userData,
-        hasImage: "yes",
-        imagePath 
-      };
-      setUserData(updatedData);
+      // Upload the image and get the base64 string
+      const imageData = await onImageUpload(file);
       
       // Add a confirmation message
       addMessage("Image uploaded successfully", "user");
       
-      // Move to next step
+      // Show analysis message
+      addMessage("Analyzing your foot image...", "bot");
+      
+      // Send the image for analysis
+      const response = await fetch('/api/analyze-foot-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageBase64: imageData,
+          consultationId: userData.id
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Image analysis failed');
+      }
+      
+      const analysisResult = await response.json();
+      
+      // Update user data with analysis results
+      const updatedData = { 
+        ...userData,
+        hasImage: "yes",
+        imagePath: imageData,
+        imageAnalysis: JSON.stringify(analysisResult)
+      };
+      setUserData(updatedData);
+      
+      // Display analysis results to the user
+      const analysisMessage = `
+Based on my analysis, it appears you may have ${analysisResult.condition} 
+(${analysisResult.severity} severity).
+
+Recommendations:
+${analysisResult.recommendations.map((rec: string) => `• ${rec}`).join('\n')}
+
+${analysisResult.disclaimer}
+      `;
+      
+      addMessage(analysisMessage.trim(), "bot");
+      
+      // Move to next step after showing the analysis
+      setTimeout(() => {
+        const step = chatFlow[currentStep];
+        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
+        if (nextStepId) processStep(nextStepId);
+      }, 3000);
+      
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+      addMessage("I couldn't properly analyze your image. Let's continue with the consultation anyway.", "bot");
+      
+      // Still move to next step even if analysis fails
       const step = chatFlow[currentStep];
       setTimeout(() => {
         const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
         if (nextStepId) processStep(nextStepId);
-      }, 500);
-      
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      addMessage("There was an error uploading your image. Please try again.", "bot");
+      }, 1500);
     } finally {
       setShowImageUpload(false);
       setIsWaitingForResponse(false);

@@ -33,12 +33,7 @@ export const consultations = pgTable("consultations", {
   transferredToWhatsApp: text("transferred_to_whatsapp"),
   hasImage: text("has_image"),
   imagePath: text("image_path"),
-  imageAnalysis: json("image_analysis").$type<{
-    condition: string,
-    severity: string,
-    recommendations: string[],
-    disclaimer: string
-  }>(),
+  imageAnalysis: json("image_analysis").$type<string>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   conversationLog: json("conversation_log").$type<{step: string, response: string}[]>(),
 });

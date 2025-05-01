@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { z } from "zod";
 import { generateNurseImage } from "./services/imageGeneration";
+import { analyzeFootImage } from "./services/openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for the chatbot
@@ -73,6 +74,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching consultation:', error);
       return res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Analyze foot image using OpenAI
+  app.post(`${apiPrefix}/analyze-foot-image`, async (req, res) => {
+    try {
+      // Validate request body
+      if (!req.body || !req.body.imageBase64) {
+        return res.status(400).json({ error: "Image data is required" });
+      }
+
+      const imageBase64 = req.body.imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const consultationId = req.body.consultationId;
+      
+      // Analyze the image using OpenAI
+      const analysis = await analyzeFootImage(imageBase64);
+      
+      // If a consultation ID is provided, save the analysis to the consultation
+      if (consultationId) {
+        const id = parseInt(consultationId);
+        if (!isNaN(id)) {
+          const consultation = await storage.getConsultationById(id);
+          if (consultation) {
+            await storage.updateConsultation(id, {
+              imageAnalysis: JSON.stringify(analysis)
+            });
+          }
+        }
+      }
+      
+      return res.status(200).json(analysis);
+    } catch (error) {
+      console.error('Error analyzing foot image:', error);
+      return res.status(500).json({ 
+        error: 'Failed to analyze image', 
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
