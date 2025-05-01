@@ -362,136 +362,62 @@ ${analysis.disclaimer}
       // Add a confirmation message
       addMessage("Image uploaded successfully", "user");
       
-      // Show analysis message
-      addMessage("Analyzing your foot image...", "bot");
-      
-      // Send the image for analysis
-      const response = await fetch('/api/analyze-foot-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageBase64: imageData,
-          consultationId: userData.id
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Image analysis failed');
-      }
-      
-      const analysisResult = await response.json();
-      
-      // Update user data with analysis results
+      // Update user data with basic image info - no AI analysis needed
       const updatedData = { 
         ...userData,
         hasImage: "yes",
-        imagePath: imageData,
-        imageAnalysis: JSON.stringify(analysisResult)
+        imagePath: imageData
       };
       setUserData(updatedData);
       
-      // Store the analysis results for later use
-      const analysisData = {
-        condition: analysisResult.condition,
-        severity: analysisResult.severity,
-        recommendations: analysisResult.recommendations,
-        disclaimer: analysisResult.disclaimer
-      };
-      
-      // Save the analysis data for later use in the conversation
-      // We'll show the detailed analysis when we reach the "image_analysis_results" step
-      const currentUserData = { ...userData };
-      currentUserData.footAnalysis = analysisData;
-      setUserData(currentUserData);
-      
-      // Move to next step to show the confirmation
+      // Move to next step to show the confirmation - simplified approach
       const step = chatFlow[currentStep];
       const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
       if (nextStepId) processStep(nextStepId);
       
     } catch (error) {
-      console.error("Error analyzing image:", error);
-      addMessage("I couldn't properly analyze your image. Let's continue with the consultation anyway.", "bot");
+      console.error("Error processing image:", error);
+      addMessage("I couldn't process your image properly. Let's continue with the consultation without it.", "bot");
       
-      // Still move to next step even if analysis fails
+      // Still move to next step even if upload fails
       const step = chatFlow[currentStep];
       setTimeout(() => {
         const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
         if (nextStepId) processStep(nextStepId);
-      }, 1500);
+      }, 1000);
     } finally {
       setShowImageUpload(false);
       setIsWaitingForResponse(false);
     }
   }, [currentStep, userData, onImageUpload, addMessage, processStep]);
 
-  // Handle symptom analysis
+  // Handle symptom analysis - simplified to avoid OpenAI API calls
   const handleSymptomAnalysis = useCallback(async (symptoms: string) => {
     setIsWaitingForResponse(true);
     
     try {
-      // Show analysis message
-      addMessage("Analyzing your symptoms...", "bot");
-      
-      // Send the symptoms for analysis
-      const response = await fetch('/api/analyze-symptoms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          symptoms,
-          consultationId: userData.id
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Symptom analysis failed');
-      }
-      
-      const analysisResult = await response.json();
-      
-      // Update user data with analysis results
+      // Store only the user description without AI analysis
       const updatedData = { 
         ...userData,
         hasSymptomDescription: "yes",
-        symptomDescription: symptoms,
-        symptomAnalysis: JSON.stringify(analysisResult)
+        symptomDescription: symptoms
       };
       setUserData(updatedData);
       
-      // Store the analysis results for later use
-      const analysisData = {
-        potentialConditions: analysisResult.potentialConditions,
-        severity: analysisResult.severity,
-        urgency: analysisResult.urgency,
-        recommendation: analysisResult.recommendation,
-        nextSteps: analysisResult.nextSteps,
-        disclaimer: analysisResult.disclaimer
-      };
-      
-      // Save the analysis data for later use in the conversation
-      const currentUserData = { ...userData };
-      currentUserData.symptomAnalysisResults = analysisData;
-      setUserData(currentUserData);
-      
-      // Move to next step to show the analysis
+      // Move directly to the next step
       const step = chatFlow[currentStep];
       const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
       if (nextStepId) processStep(nextStepId);
       
     } catch (error) {
-      console.error("Error analyzing symptoms:", error);
-      addMessage("I couldn't properly analyze your symptoms. Let's continue with the consultation anyway.", "bot");
+      console.error("Error processing symptoms:", error);
       
-      // Still move to next step even if analysis fails
+      // Move to next step even if there's an error
       const step = chatFlow[currentStep];
       setTimeout(() => {
         const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
         if (nextStepId) processStep(nextStepId);
-      }, 1500);
+      }, 1000);
     } finally {
       setIsWaitingForResponse(false);
     }

@@ -91,19 +91,14 @@ export const chatFlow: ChatFlow = {
     delay: 1000
   },
   image_upload_confirmation: {
-    message: "Thank you for uploading your image. Our AI system is analyzing your foot condition to provide better insights for your consultation. This usually takes a few seconds...",
-    next: "image_analysis_results",
-    delay: 2000
+    message: "Thank you for uploading your image. Our specialists will review this during your consultation for a more accurate assessment.",
+    next: "image_received_confirmation",
+    delay: 1000
   },
-  image_analysis_results: {
-    message: "I've analyzed your foot image, and here's what I can see:",
-    next: "image_analysis_recommendations",
-    delay: 1500
-  },
-  image_analysis_recommendations: {
-    message: "Based on this analysis, I recommend discussing this with our specialists when you visit. The information you've provided will help them prepare for your appointment.",
+  image_received_confirmation: {
+    message: "The image has been received and will be securely stored for your upcoming consultation. This visual information is very helpful for our specialists.",
     next: "issue_category",
-    delay: 1500
+    delay: 1000
   },
   issue_category: {
     message: "What type of foot concern brings you to our clinic today?",
@@ -201,7 +196,7 @@ export const chatFlow: ChatFlow = {
     next: "symptom_description_prompt"
   },
   symptom_description_prompt: {
-    message: "Our AI assistant can analyze your symptoms in detail to provide a more accurate assessment. Would you like to describe your symptoms in your own words?",
+    message: "Would you like to describe your symptoms in your own words? This will help our specialists prepare for your consultation.",
     options: [
       { text: "Yes, I'll describe my symptoms", value: "yes" },
       { text: "No, continue to next step", value: "no" }
@@ -219,14 +214,14 @@ export const chatFlow: ChatFlow = {
     next: "analyzing_symptoms"
   },
   analyzing_symptoms: {
-    message: "Thank you for describing your symptoms. I'm analyzing this information to provide you with more insights...",
-    next: "symptom_analysis_results",
-    delay: 2000
+    message: "Thank you for describing your symptoms. I'll pass this information to our specialists...",
+    next: "symptom_analysis_handoff",
+    delay: 1000
   },
-  symptom_analysis_results: {
-    message: "Based on my analysis of your symptoms, here's what I can tell you:",
+  symptom_analysis_handoff: {
+    message: "Our foot care specialists will review your symptom description during your appointment to provide a thorough assessment. This information helps us prepare for your visit.",
     next: "previous_treatment",
-    delay: 1500
+    delay: 1000
   },
   previous_treatment: {
     message: "Have you previously received treatment for this condition?",
