@@ -23,9 +23,24 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
   const [userData, setUserData] = useState<Record<string, any>>({});
   const [conversationLog, setConversationLog] = useState<{step: string, response: string}[]>([]);
   
-  // Add a message to the chat
+  // Add a message to the chat with duplicate prevention
   const addMessage = useCallback((text: string, type: "bot" | "user", isTyping = false) => {
-    setMessages(prev => [...prev, { text, type, isTyping }]);
+    // Don't add duplicate messages - especially important for bot messages
+    setMessages(prev => {
+      // Check if this exact message (same text and type) already exists
+      const isDuplicate = prev.some(msg => 
+        msg.text === text && 
+        msg.type === type && 
+        !msg.isTyping
+      );
+      
+      if (isDuplicate) {
+        console.log(`Prevented duplicate message: "${text.substring(0, 20)}..."`);
+        return prev; // Return unchanged array if duplicate
+      }
+      
+      return [...prev, { text, type, isTyping }];
+    });
   }, []);
   
   // Forward declaration for processStep using useRef
@@ -83,9 +98,25 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
   const processStep = useCallback((stepId: string) => {
     // Safety check - prevent going back to asking name if we already have it
     let safeStepId = stepId;
+    
+    // Strict prevention of duplicate steps
     if (stepId === "name" && userData.name) {
       console.log("Prevented duplicate name request in processStep - redirecting to phone step");
       safeStepId = "phone";
+    }
+    
+    // Also prevent phone number being asked twice
+    if (stepId === "phone" && userData.phone) {
+      console.log("Prevented duplicate phone request in processStep - redirecting to email step");
+      safeStepId = "email";
+    }
+    
+    // Detect if we're about to show the same message again 
+    // This happens when chat is reinitialized or when there are duplicate steps
+    const msgText = chatFlow[safeStepId]?.message;
+    if (msgText && messages.some(m => m.text === msgText && m.type === "bot")) {
+      console.log(`Message "${msgText.substring(0, 20)}..." already displayed, skipping.`);
+      return; // Skip if this exact message has already been shown
     }
     
     const step = chatFlow[safeStepId];
@@ -196,10 +227,14 @@ ${analysis.disclaimer}
     processStepRef.current = processStep;
   }, [processStep]);
   
-  // Start the conversation
+  // Start the conversation - run only ONCE at initialization
   useEffect(() => {
-    processStep("welcome");
-  }, [processStep]);
+    // Only start the conversation when there are no messages
+    // This prevents the chat from restarting on re-renders
+    if (messages.length === 0) {
+      processStep("welcome");
+    }
+  }, []);
   
   // Handle user selecting an option
   const handleOptionSelect = useCallback((option: ChatOption) => {
@@ -220,10 +255,16 @@ ${analysis.disclaimer}
       // Get the next step ID but validate it's not asking for the name again
       let nextStepId = typeof step.next === 'function' ? step.next(option.value) : step.next;
       
-      // Special validation: prevent going back to asking name after we have it
+      // Special validation: prevent going back to asking name or phone after we have it
       if (nextStepId === "name" && userData.name) {
         console.log("Prevented duplicate name request in options - redirecting to phone step");
         nextStepId = "phone";
+      }
+      
+      // Prevent phone being asked twice
+      if (nextStepId === "phone" && userData.phone) {
+        console.log("Prevented duplicate phone request in options - redirecting to email step");
+        nextStepId = "email";
       }
       
       if (nextStepId) processStep(nextStepId);
@@ -253,6 +294,12 @@ ${analysis.disclaimer}
       if (nextStepId === "name" && userData.name) {
         console.log("Prevented duplicate name request - redirecting to phone step");
         nextStepId = "phone";
+      }
+      
+      // Prevent phone being asked twice
+      if (nextStepId === "phone" && userData.phone) {
+        console.log("Prevented duplicate phone request - redirecting to email step");
+        nextStepId = "email";
       }
       
       if (nextStepId) processStep(nextStepId);
