@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import React from 'react';
 
 interface NurseAvatarProps {
   size?: 'sm' | 'md' | 'lg';
@@ -6,14 +6,14 @@ interface NurseAvatarProps {
 
 /**
  * Fiona nurse avatar component
- * Uses a stylized SVG nurse icon with the application's color scheme
+ * Uses a stylized SVG nurse icon with red hair and the FootCare Clinic's color scheme
  */
-const NurseAvatar: FC<NurseAvatarProps> = ({ size = 'md' }) => {
+const NurseAvatar: React.FC<NurseAvatarProps> = ({ size = 'md' }) => {
   // Determine size class
-  const sizeClass = size === 'sm' ? 'h-8 w-8' : size === 'md' ? 'h-10 w-10' : 'h-12 w-12';
-
+  const sizeClass = size === 'sm' ? 'h-8 w-8' : size === 'md' ? 'h-10 w-10' : 'h-16 w-16';
+  
   return (
-    <div className={`${sizeClass} rounded-full bg-primary flex items-center justify-center overflow-hidden`}>
+    <div className={`${sizeClass} rounded-full overflow-hidden flex-shrink-0`}>
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
         viewBox="0 0 64 64" 
