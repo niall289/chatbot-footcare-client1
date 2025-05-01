@@ -6,6 +6,7 @@ import UserInput from "./UserInput";
 import ImageUploader from "./ImageUploader";
 import { Button } from "@/components/ui/button";
 import NurseAvatar from "./NurseAvatar";
+import PatientJourneyTracker from "./PatientJourneyTracker";
 import type { Consultation } from "@shared/schema";
 
 interface ChatInterfaceProps {

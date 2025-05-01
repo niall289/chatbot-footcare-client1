@@ -18,31 +18,40 @@ const chatStepToJourneyMap: Record<string, string> = {
   'name': 'patient_info',
   'phone': 'patient_info',
   'email': 'patient_info',
+  'preferred_clinic': 'patient_info',
+  
+  // Photo steps
+  'upload_image_prompt': 'photo',
+  'image_upload_instructions': 'photo',
+  'image_analysis_results': 'photo',
   
   // Symptoms steps
   'issue_category': 'symptoms',
-  'pain_level': 'symptoms',
-  'duration': 'symptoms',
-  'symptom_description': 'symptoms',
-  'symptom_analysis_results': 'symptoms',
-  
-  // Photo steps
-  'photo_question': 'photo',
-  'photo_upload': 'photo',
-  'image_analysis_results': 'photo',
+  'pain_specifics': 'symptoms',
+  'skin_specifics': 'symptoms',
+  'nail_specifics': 'symptoms',
+  'structural_specifics': 'symptoms',
+  'other_specifics': 'symptoms',
+  'pain_duration': 'symptoms',
+  'pain_severity': 'symptoms',
+  'additional_info': 'symptoms',
   
   // Analysis steps
-  'analysis_summary': 'analysis',
+  'symptom_description_prompt': 'analysis',
+  'symptom_description': 'analysis',
+  'analyzing_symptoms': 'analysis',
+  'symptom_analysis_handoff': 'analysis',
   
   // Recommendation steps
-  'treatment_options': 'recommendation',
-  'preferred_clinic': 'recommendation',
+  'previous_treatment': 'recommendation',
+  'prepare_transfer': 'recommendation',
   
   // Follow-up steps
-  'appointment_preference': 'followup',
-  'previous_treatment': 'followup',
   'transfer_whatsapp': 'followup',
-  'whatsapp_handoff': 'followup'
+  'whatsapp_handoff': 'followup',
+  'provide_phone': 'followup',
+  'end': 'followup',
+  'goodbye': 'followup'
 };
 
 interface PatientJourneyTrackerProps {

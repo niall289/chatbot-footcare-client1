@@ -87,18 +87,13 @@ export const chatFlow: ChatFlow = {
   image_upload_instructions: {
     message: "Great! Please upload a clear photo of your foot concern. The image should be well-lit and show the affected area clearly. For privacy, avoid including any identifiable features or personal information in the photo.",
     imageUpload: true,
-    next: "image_upload_confirmation",
+    next: "image_analysis_results",
     delay: 1000
   },
-  image_upload_confirmation: {
-    message: "Thank you for uploading your image. Our specialists will review this during your consultation for a more accurate assessment.",
-    next: "image_received_confirmation",
-    delay: 1000
-  },
-  image_received_confirmation: {
-    message: "The image has been received and will be securely stored for your upcoming consultation. This visual information is very helpful for our specialists.",
+  image_analysis_results: {
+    message: "Based on the image you've shared, I can provide some initial observations. However, please note that this is not a medical diagnosis, and a proper in-person assessment by our podiatrists is essential for accurate diagnosis and treatment.",
     next: "issue_category",
-    delay: 1000
+    delay: 2000
   },
   issue_category: {
     message: "What type of foot concern brings you to our clinic today?",
