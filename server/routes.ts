@@ -5,6 +5,7 @@ import * as schema from "@shared/schema";
 import { z } from "zod";
 import { generateNurseImage } from "./services/imageGeneration";
 import { analyzeFootImage } from "./services/openai";
+import { analyzeSymptoms } from "./services/symptomAnalysis";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for the chatbot
@@ -109,6 +110,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Error analyzing foot image:', error);
       return res.status(500).json({ 
         error: 'Failed to analyze image', 
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Analyze symptoms using AI
+  app.post(`${apiPrefix}/analyze-symptoms`, async (req, res) => {
+    try {
+      // Validate request body
+      if (!req.body || !req.body.symptoms) {
+        return res.status(400).json({ error: "Symptom description is required" });
+      }
+
+      const symptoms = req.body.symptoms;
+      const consultationId = req.body.consultationId;
+      
+      // Analyze the symptoms using AI
+      const analysis = await analyzeSymptoms(symptoms);
+      
+      // If a consultation ID is provided, save the analysis to the consultation
+      if (consultationId) {
+        const id = parseInt(consultationId);
+        if (!isNaN(id)) {
+          const consultation = await storage.getConsultationById(id);
+          if (consultation) {
+            await storage.updateConsultation(id, {
+              symptomAnalysis: JSON.stringify(analysis)
+            });
+          }
+        }
+      }
+      
+      return res.status(200).json(analysis);
+    } catch (error) {
+      console.error('Error analyzing symptoms:', error);
+      return res.status(500).json({ 
+        error: 'Failed to analyze symptoms', 
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }

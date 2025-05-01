@@ -34,6 +34,8 @@ export const consultations = pgTable("consultations", {
   hasImage: text("has_image"),
   imagePath: text("image_path"),
   imageAnalysis: json("image_analysis").$type<string>(),
+  symptomDescription: text("symptom_description"),
+  symptomAnalysis: json("symptom_analysis").$type<string>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   conversationLog: json("conversation_log").$type<{step: string, response: string}[]>(),
 });

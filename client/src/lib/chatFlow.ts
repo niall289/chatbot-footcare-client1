@@ -190,7 +190,35 @@ export const chatFlow: ChatFlow = {
     message: "Is there anything else you'd like to share about your condition?",
     input: "textarea",
     optional: true,
-    next: "previous_treatment"
+    next: "symptom_description_prompt"
+  },
+  symptom_description_prompt: {
+    message: "Our AI assistant can analyze your symptoms in detail to provide a more accurate assessment. Would you like to describe your symptoms in your own words?",
+    options: [
+      { text: "Yes, I'll describe my symptoms", value: "yes" },
+      { text: "No, continue to next step", value: "no" }
+    ],
+    next: (value) => {
+      if (value === "yes") return "symptom_description";
+      return "previous_treatment";
+    }
+  },
+  symptom_description: {
+    message: "Please describe your symptoms in detail. Include when they started, any triggers, and how they affect your daily life:",
+    input: "textarea",
+    validation: (value) => value.trim().length > 10,
+    errorMessage: "Please provide a more detailed description (at least 10 characters)",
+    next: "analyzing_symptoms"
+  },
+  analyzing_symptoms: {
+    message: "Thank you for describing your symptoms. I'm analyzing this information to provide you with more insights...",
+    next: "symptom_analysis_results",
+    delay: 2000
+  },
+  symptom_analysis_results: {
+    message: "Based on my analysis of your symptoms, here's what I can tell you:",
+    next: "previous_treatment",
+    delay: 1500
   },
   previous_treatment: {
     message: "Have you previously received treatment for this condition?",
@@ -258,6 +286,8 @@ export const chatStepToField: Record<string, string> = {
   pain_duration: "painDuration",
   pain_severity: "painSeverity",
   additional_info: "additionalInfo",
+  symptom_description_prompt: "hasSymptomDescription",
+  symptom_description: "symptomDescription",
   previous_treatment: "previousTreatment",
   transfer_whatsapp: "transferredToWhatsApp"
 };
