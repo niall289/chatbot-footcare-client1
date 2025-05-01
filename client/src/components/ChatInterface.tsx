@@ -39,6 +39,7 @@ export default function ChatInterface({
     handleUserInput,
     handleOptionSelect,
     handleImageUpload,
+    handleSymptomAnalysis,
     validate,
     currentStep
   } = useChat({
@@ -127,7 +128,7 @@ export default function ChatInterface({
             type={inputType}
             disabled={isInputDisabled}
             isWaiting={isWaitingForResponse}
-            onSubmit={handleUserInput}
+            onSubmit={currentStep === "symptom_description" ? handleSymptomAnalysis : handleUserInput}
             validate={validate}
             currentData={currentData}
           />

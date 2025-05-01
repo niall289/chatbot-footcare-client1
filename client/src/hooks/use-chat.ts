@@ -134,6 +134,62 @@ ${analysis.disclaimer}
       return;
     }
     
+    // Custom handling for symptom analysis results
+    if (stepId === "symptom_analysis_results" && userData.symptomAnalysisResults) {
+      const analysis = userData.symptomAnalysisResults;
+      
+      // Show bot message with typing indicator
+      addMessage(step.message, "bot", true);
+      
+      // Replace with actual message after delay
+      setTimeout(() => {
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const lastIndex = newMessages.length - 1;
+          if (lastIndex >= 0 && newMessages[lastIndex].isTyping) {
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              isTyping: false
+            };
+          }
+          return newMessages;
+        });
+        
+        // Display the analysis results
+        const conditionsText = analysis.potentialConditions.length > 1 
+          ? `Based on your symptoms, you may have one of the following conditions: ${analysis.potentialConditions.join(", ")}`
+          : `Based on your symptoms, you may have ${analysis.potentialConditions[0]}`;
+        
+        const analysisMessage = `
+${conditionsText} 
+(${analysis.severity} severity, ${analysis.urgency} priority).
+
+${analysis.recommendation}
+
+Next steps:
+${analysis.nextSteps.map((step: string) => `• ${step}`).join('\n')}
+
+${analysis.disclaimer}
+        `;
+        
+        // Add the analysis message after a short delay
+        setTimeout(() => {
+          addMessage(analysisMessage, "bot");
+          
+          // Handle next steps
+          if (step.delay) {
+            setTimeout(() => {
+              setupStepInput(step);
+            }, step.delay);
+          } else {
+            setupStepInput(step);
+          }
+        }, 1000);
+      }, 1500);
+      
+      return;
+    }
+    
     // Standard message handling
     addMessage(step.message, "bot", true);
     
