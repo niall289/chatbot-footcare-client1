@@ -8,20 +8,31 @@ export default function Home() {
       <Card className="w-full max-w-md">
         <CardContent className="pt-6 pb-8">
           <div className="text-center mb-6">
-            <div className="h-16 w-16 mx-auto bg-primary rounded-full flex items-center justify-center mb-4">
+            <div className="h-24 w-24 mx-auto flex items-center justify-center mb-4">
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
-                className="h-8 w-8 text-white" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
+                className="h-full w-full" 
+                viewBox="0 0 200 200" 
+                fill="none"
               >
+                {/* Main circle */}
+                <circle cx="100" cy="100" r="90" fill="#4AA87D" />
+                <circle cx="100" cy="100" r="85" fill="white" />
+                
+                {/* Foot silhouette */}
                 <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" 
+                  d="M50 85C52 65 65 55 80 58C95 61 100 70 105 85C110 100 120 110 135 112C150 114 160 105 155 90C150 75 160 65 170 75C180 85 175 110 160 125C145 140 120 145 100 130C80 115 65 125 60 135C55 145 48 150 40 145C32 140 35 130 45 125C55 120 48 105 50 85Z" 
+                  fill="#4AA87D" 
                 />
+                
+                {/* Text arc */}
+                <path id="textArc" d="M30,100 A70,70 0 1,1 170,100" fill="none" />
+                <text fontSize="16" fontWeight="bold" fill="#4AA87D">
+                  <textPath href="#textArc" startOffset="24%">FOOTCARE CLINIC</textPath>
+                </text>
+                
+                {/* Bottom text */}
+                <text x="100" y="155" fontSize="12" fontWeight="bold" fill="#4AA87D" textAnchor="middle">SPECIALIST PODIATRY</text>
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">FootCare Clinic</h1>
