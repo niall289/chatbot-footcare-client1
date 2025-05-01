@@ -36,15 +36,18 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
     // Map step to database field
     const field = chatStepToField[step];
     
+    // Create a new object with the updated data
     const updatedData = { ...userData };
     if (field) {
       updatedData[field] = value;
+      console.log(`Updated ${field} with value: ${value}`);
     }
     
     // Update conversation log
     const updatedLog = [...conversationLog, { step, response: value }];
     setConversationLog(updatedLog);
     
+    // Update state with new data
     setUserData(updatedData);
     
     // Determine if this is a complete submission point
@@ -81,6 +84,9 @@ export function useChat({ onSaveData, onImageUpload }: UseChatProps) {
   const processStep = useCallback((stepId: string) => {
     const step = chatFlow[stepId];
     if (!step) return;
+    
+    // Clear any previous typing indicators before adding new messages
+    setMessages(prev => prev.map(msg => ({ ...msg, isTyping: false })));
     
     setCurrentStep(stepId);
     
