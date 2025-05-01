@@ -5,9 +5,8 @@ export interface ChatOption {
   value: string;
 }
 
-export interface ChatStep {
+export type ChatStep = {
   message: string;
-  next: string | ((value: string) => string);
   delay?: number;
   input?: 'text' | 'tel' | 'email' | 'textarea';
   validation?: (value: string) => boolean;
@@ -15,8 +14,10 @@ export interface ChatStep {
   options?: ChatOption[];
   optional?: boolean;
   showWhatsApp?: boolean;
-  end?: boolean;
-}
+} & (
+  | { end: true; next?: string | ((value: string) => string) }
+  | { end?: false; next: string | ((value: string) => string) }
+);
 
 export interface ChatFlow {
   [key: string]: ChatStep;
@@ -24,7 +25,7 @@ export interface ChatFlow {
 
 export const chatFlow: ChatFlow = {
   welcome: {
-    message: "👋 Hello! I'm the FootCare Clinic virtual assistant. I'll help gather some information about your foot concerns and connect you with our specialists.",
+    message: "👋 Hello! I'm Fiona, your FootCare Clinic virtual assistant. I'll help gather some information about your foot concerns and connect you with our specialists.",
     next: "intro"
   },
   intro: {
@@ -194,7 +195,8 @@ export const chatFlow: ChatFlow = {
   },
   goodbye: {
     message: "Thank you for contacting FootCare Clinic! We look forward to helping you feel better soon. Goodbye! 👋",
-    end: true
+    end: true,
+    next: "goodbye" // Adding this to fix TypeScript error, though it won't be used due to end=true
   }
 };
 
