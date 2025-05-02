@@ -7,6 +7,38 @@ import type { Consultation } from "@shared/schema";
 
 export default function Chat() {
   const [consultationId, setConsultationId] = useState<number | null>(null);
+  const [isEmbedded, setIsEmbedded] = useState(false);
+  const [botConfig, setBotConfig] = useState({
+    botName: 'Fiona', 
+    clinicLocation: 'all',
+    allowImageUpload: true,
+    theme: 'teal'
+  });
+  
+  // Check if the chat is being embedded in an iframe on load
+  useEffect(() => {
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const embedded = urlParams.get('embedded');
+    
+    if (embedded === 'true') {
+      setIsEmbedded(true);
+      
+      // Get configuration from URL parameters
+      const botName = urlParams.get('botName');
+      const clinicLocation = urlParams.get('clinicLocation');
+      const allowImageUpload = urlParams.get('allowImageUpload');
+      const theme = urlParams.get('theme');
+      
+      // Update configuration based on URL parameters
+      setBotConfig({
+        botName: botName || 'Fiona',
+        clinicLocation: clinicLocation || 'all',
+        allowImageUpload: allowImageUpload !== 'false',
+        theme: theme || 'teal'
+      });
+    }
+  }, []);
   
   // Create a new consultation when needed
   const createConsultation = useMutation({
