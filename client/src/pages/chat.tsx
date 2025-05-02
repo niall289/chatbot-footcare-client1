@@ -102,8 +102,13 @@ export default function Chat() {
   });
   
   // Fetch consultation data if ID exists
-  const { data: consultation } = useQuery({
+  const { data: consultation } = useQuery<Consultation>({
     queryKey: ['/api/consultations', consultationId],
+    queryFn: async () => {
+      if (!consultationId) return undefined;
+      const res = await apiRequest("GET", `/api/consultations/${consultationId}`);
+      return res.json();
+    },
     enabled: !!consultationId,
   });
   
@@ -125,11 +130,21 @@ export default function Chat() {
   };
   
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col justify-center items-center p-4 md:p-0">
+    <div className={`${isEmbedded ? 'bg-transparent' : 'bg-gray-100 min-h-screen'} flex flex-col justify-center items-center ${isEmbedded ? 'p-0' : 'p-4 md:p-0'}`}>
       <ChatInterface
         consultationId={consultationId}
         consultation={consultation}
-        onCreateConsultation={handleCreateConsultation}
+        onCreateConsultation={(data) => {
+          // If embedded, add the clinic location from configuration
+          if (isEmbedded && botConfig.clinicLocation !== 'all') {
+            handleCreateConsultation({
+              ...data,
+              preferredClinic: botConfig.clinicLocation
+            });
+          } else {
+            handleCreateConsultation(data);
+          }
+        }}
         onUpdateConsultation={handleUpdateConsultation}
         onTransferToWhatsApp={handleTransferToWhatsApp}
         isTransferring={transferToWhatsApp.isPending}

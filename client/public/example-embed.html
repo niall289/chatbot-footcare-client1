@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FootCare Clinic - Chatbot Example Embed</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+      color: #333;
+    }
+    header {
+      background-color: #00847e;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+    .hero p {
+      font-size: 1.2rem;
+      color: #666;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .services {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+      margin-bottom: 50px;
+    }
+    .service {
+      border: 1px solid #eee;
+      border-radius: 5px;
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .service:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .service h3 {
+      color: #00847e;
+    }
+    .locations {
+      background-color: #f9f9f9;
+      padding: 40px;
+      border-radius: 5px;
+      margin-bottom: 50px;
+    }
+    .locations h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .location-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 30px;
+    }
+    .location {
+      border: 1px solid #eee;
+      border-radius: 5px;
+      padding: 20px;
+      background-color: white;
+    }
+    .location h3 {
+      color: #00847e;
+      margin-top: 0;
+    }
+    footer {
+      background-color: #333;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      margin-top: 50px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FootCare Clinic</h1>
+    <p>Providing expert podiatry services across Dublin</p>
+  </header>
+  
+  <main>
+    <section class="hero">
+      <h1>Expert Foot Care For All Ages</h1>
+      <p>Our team of experienced podiatrists provides comprehensive assessment, diagnosis and treatment for all foot and lower limb conditions.</p>
+    </section>
+    
+    <section class="services">
+      <div class="service">
+        <h3>General Foot Care</h3>
+        <p>Comprehensive foot assessments, nail cutting and filing, callus and corn removal.</p>
+      </div>
+      <div class="service">
+        <h3>Biomechanical Assessment</h3>
+        <p>Analysis of your walking pattern to identify and correct abnormalities.</p>
+      </div>
+      <div class="service">
+        <h3>Ingrown Toenail Treatment</h3>
+        <p>Conservative and surgical approaches to ingrown toenail management.</p>
+      </div>
+      <div class="service">
+        <h3>Fungal Nail Treatments</h3>
+        <p>Effective treatments for fungal nail infections.</p>
+      </div>
+      <div class="service">
+        <h3>Diabetic Foot Care</h3>
+        <p>Specialized care for diabetes patients to prevent complications.</p>
+      </div>
+      <div class="service">
+        <h3>Custom Orthotics</h3>
+        <p>Custom-made shoe inserts to correct foot alignment issues.</p>
+      </div>
+    </section>
+    
+    <section class="locations">
+      <h2>Our Clinic Locations</h2>
+      <div class="location-grid">
+        <div class="location">
+          <h3>Donnycarney</h3>
+          <p>123 Collins Avenue East, Donnycarney, Dublin 5</p>
+          <p>Phone: (01) 831 1783</p>
+          <p>Hours: Mon-Fri 9am-6pm</p>
+        </div>
+        <div class="location">
+          <h3>Palmerstown</h3>
+          <p>45 Palmerstown Drive, Palmerstown, Dublin 20</p>
+          <p>Phone: (01) 623 5782</p>
+          <p>Hours: Mon-Fri 9am-6pm</p>
+        </div>
+        <div class="location">
+          <h3>Baldoyle</h3>
+          <p>17 Baldoyle Road, Baldoyle, Dublin 13</p>
+          <p>Phone: (01) 839 2721</p>
+          <p>Hours: Mon-Fri 9am-6pm</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <p>&copy; 2025 FootCare Clinic. All rights reserved.</p>
+  </footer>
+
+  <!-- FootCare Clinic Chatbot Widget -->
+  <script>
+    (function(w,d,s,o,f,js,fjs){
+      w['FootCareWidget']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+      js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
+      js.id=o;js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
+    }(window,document,'script','fcChat','widget.js'));
+    fcChat('init', { 
+      botName: 'Fiona',
+      clinicLocation: 'all', // or 'donnycarney', 'palmerstown', 'baldoyle'
+      allowImageUpload: true,
+      theme: 'teal' // matches FootCare Clinic branding
+    });
+  </script>
+</body>
+</html>
