@@ -34,7 +34,33 @@ You can adjust the iframe's position, size, and appearance by modifying the styl
 
 ## Option 2: JavaScript Widget (Recommended)
 
-Add the following code to your website, right before the closing `</body>` tag:
+### Where to Insert the Code
+
+The code needs to be added to **every page** where you want the chatbot to appear. For most websites, this means adding it to your website's main template file or footer include. 
+
+**Specific placement instructions:**
+
+1. Locate your website's main template file. Common file names include:
+   - `footer.php` (for WordPress)
+   - `default.html` or `base.html` (for static site generators)
+   - Any file that contains the closing `</body>` tag
+
+2. Insert the following code immediately before the closing `</body>` tag:
+   ```
+   <!-- This is where the chatbot code should go -->
+   </body>
+   ```
+
+3. For WordPress sites:
+   - Go to Appearance > Theme Editor
+   - Select your theme's footer.php file
+   - Add the code right before the `<?php wp_footer(); ?>` call or the `</body>` tag
+
+4. For Wix/Squarespace sites:
+   - Go to Settings > Advanced > Custom Code
+   - Add the code in the "Footer" section
+
+The code **must be placed at the end of the page** so it doesn't interfere with your website's loading performance.
 
 ```html
 <!-- FootCare Clinic Chatbot Widget -->
@@ -68,17 +94,101 @@ The JavaScript widget accepts the following configuration options:
 | `theme` | 'teal' | Color theme ('teal' matches FootCare Clinic branding) |
 | `position` | 'right' | Position of the chat button ('right' or 'left') |
 
-### Example of clinic-specific configuration
+### Page-Specific Configurations
 
-If you want to embed the chatbot specifically for the Palmerstown clinic page:
+You can customize the chatbot for specific pages of your website. This is ideal for:
+
+1. **Clinic-specific pages**: Set the `clinicLocation` parameter to match the page content
+2. **Service-specific pages**: Customize the bot name or theme to match the service
+
+#### How to implement page-specific configurations:
+
+For WordPress or similar CMS:
+
+```php
+<!-- FootCare Clinic Chatbot Widget -->
+<script>
+  (function(w,d,s,o,f,js,fjs){
+    w['FootCareWidget']=o;w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+    js=d.createElement(s),fjs=d.getElementsByTagName(s)[0];
+    js.id=o;js.src=f;js.async=1;fjs.parentNode.insertBefore(js,fjs);
+  }(window,document,'script','fcChat','https://your-hosted-chatbot-url.com/widget.js'));
+  
+  // Get the current page URL to determine configuration
+  var currentPage = window.location.pathname;
+  
+  if (currentPage.includes('/donnycarney')) {
+    fcChat('init', { 
+      botName: 'Fiona',
+      clinicLocation: 'donnycarney',
+      allowImageUpload: true,
+      theme: 'teal'
+    });
+  } else if (currentPage.includes('/palmerstown')) {
+    fcChat('init', { 
+      botName: 'Fiona',
+      clinicLocation: 'palmerstown',
+      allowImageUpload: true,
+      theme: 'teal'
+    });
+  } else if (currentPage.includes('/baldoyle')) {
+    fcChat('init', { 
+      botName: 'Fiona',
+      clinicLocation: 'baldoyle',
+      allowImageUpload: true,
+      theme: 'teal'
+    });
+  } else {
+    // Default configuration for all other pages
+    fcChat('init', { 
+      botName: 'Fiona',
+      clinicLocation: 'all',
+      allowImageUpload: true,
+      theme: 'teal'
+    });
+  }
+</script>
+```
+
+This code automatically detects which clinic page the visitor is on and configures the chatbot accordingly.
+
+## FootCare Clinic Website Specific Instructions
+
+Based on our analysis of the FootCare Clinic website (https://www.footcareclinic.ie), here are specific instructions for your website team:
+
+### WordPress Integration Steps
+
+1. **Log in to WordPress admin panel** at https://www.footcareclinic.ie/wp-admin/
+
+2. **Edit your theme's footer.php file**:
+   - Go to Appearance > Theme Editor
+   - Select "Theme Footer" (footer.php) from the right sidebar
+   - Locate the closing `</body>` tag (should be near the bottom of the file)
+   - Add the chatbot widget code directly before this tag
+   - Click "Update File" to save changes
+
+3. **Alternative method using a plugin** (if you don't have direct theme editing access):
+   - Install the "Header and Footer Scripts" plugin from WordPress repository
+   - Go to Settings > Header and Footer Scripts
+   - Paste the chatbot widget code in the "Scripts in Footer" section
+   - Click "Save"
+
+### Cliniko Integration Note
+
+Since your website mentions Cliniko for appointment booking, you can coordinate the chatbot with your Cliniko system by:
+
+1. Adding the patient's details collected by the chatbot to Cliniko via the API
+2. Using custom parameters to direct users to the appropriate booking form based on their clinic location preference
 
 ```javascript
-fcChat('init', { 
-  botName: 'Fiona',
-  clinicLocation: 'palmerstown',
-  allowImageUpload: true,
-  theme: 'teal'
-});
+// Example code to direct to Cliniko booking based on clinic location
+if (clinicLocation === 'donnycarney') {
+  window.open('https://bookings.cliniko.com/footcareclinic#location=donnycarney', '_blank');
+} else if (clinicLocation === 'palmerstown') {
+  window.open('https://bookings.cliniko.com/footcareclinic#location=palmerstown', '_blank');
+} else if (clinicLocation === 'baldoyle') {
+  window.open('https://bookings.cliniko.com/footcareclinic#location=baldoyle', '_blank');
+}
 ```
 
 ## Testing the Integration
