@@ -256,15 +256,17 @@ For the best user experience and highest engagement rates, we recommend the foll
 
 ### Visual Appearance
 
-- **Button color**: Match the clinic's teal branding (#00847e)
-- **Contrast ratio**: Ensure text has at least 4.5:1 contrast with background
+- **Button design**: Circular button with Fiona's avatar
+- **Avatar**: Uses "Fiona's" friendly image to create a personal connection
+- **Color theme**: Teal background (#00847e) matching the FootCare Clinic branding
+- **Contrast ratio**: Ensures text has at least 4.5:1 contrast with background
 - **Shadows**: Subtle drop shadow (0 4px 8px rgba(0, 0, 0, 0.2))
-- **Animation**: Subtle bounce or pulse animation on page load to draw attention
-- **Icon**: Use the nurse icon for brand recognition
+- **Animation**: Gentle pulse animation to subtly draw attention
+- **Header**: Includes Fiona's avatar image alongside her name
 
 ### Behavior
 
-- **Initial state**: Collapsed button showing the nurse icon
+- **Initial state**: Collapsed button showing Fiona's avatar
 - **Load delay**: 2-3 seconds after page load to avoid overwhelming visitors
 - **Inactive timeout**: Minimize after 5 minutes of inactivity
 - **Return visitor**: Remember state between page views (using localStorage)

@@ -141,11 +141,11 @@
     button.title = `Chat with ${config.botName}`;
     button.setAttribute('aria-label', `Open ${config.botName} chat assistant`);
     
-    // Nurse icon - either use an SVG or a hosted image
+    // Use Fiona's avatar image
+    const buttonStyle = window.innerWidth <= 480 ? 'width: 32px; height: 32px;' : 'width: 40px; height: 40px;';
+    
     button.innerHTML = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-      </svg>
+      <img src="fiona-avatar-circle.svg" alt="Fiona - FootCare Clinic Nurse" style="${buttonStyle}; border-radius: 50%;">
     `;
     
     // Add click event
@@ -163,9 +163,27 @@
     const header = document.createElement('div');
     header.id = 'fc-chat-widget-header';
     
+    // Header with nurse avatar and name
+    const headerContent = document.createElement('div');
+    headerContent.style.display = 'flex';
+    headerContent.style.alignItems = 'center';
+    
+    // Add nurse avatar
+    const nurseAvatar = document.createElement('img');
+    nurseAvatar.src = 'fiona-avatar-circle.svg';
+    nurseAvatar.alt = `${config.botName} - FootCare Clinic Nurse`;
+    nurseAvatar.style.width = '28px';
+    nurseAvatar.style.height = '28px';
+    nurseAvatar.style.marginRight = '10px';
+    nurseAvatar.style.borderRadius = '50%';
+    
     // Title with nurse name
     const title = document.createElement('h3');
     title.textContent = `Chat with ${config.botName}`;
+    title.style.margin = '0';
+    
+    headerContent.appendChild(nurseAvatar);
+    headerContent.appendChild(title);
     
     // Close button
     const closeButton = document.createElement('button');
@@ -174,7 +192,7 @@
     closeButton.setAttribute('aria-label', 'Close chat');
     closeButton.addEventListener('click', toggleChatWidget);
     
-    header.appendChild(title);
+    header.appendChild(headerContent);
     header.appendChild(closeButton);
     
     // Create iframe for chat content
