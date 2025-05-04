@@ -20,8 +20,8 @@
     styleEl.innerHTML = `
       #fc-chat-widget-button {
         position: fixed;
-        ${config.position === 'right' ? 'right' : 'left'}: 20px;
-        bottom: 20px;
+        ${config.position === 'right' ? 'right' : 'left'}: 25px;
+        bottom: 25px;
         width: 60px;
         height: 60px;
         border-radius: 50%;
@@ -35,11 +35,19 @@
         z-index: 9998;
         transition: all 0.3s ease;
         border: none;
+        animation: fc-pulse 2s infinite;
+      }
+      
+      @keyframes fc-pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
       }
       
       #fc-chat-widget-button:hover {
-        transform: scale(1.05);
+        transform: scale(1.1) !important;
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.25);
+        animation: none;
       }
       
       #fc-chat-widget-button img {
@@ -100,12 +108,26 @@
       }
       
       @media (max-width: 480px) {
+        #fc-chat-widget-button {
+          bottom: 15px;
+          ${config.position === 'right' ? 'right' : 'left'}: calc(50% - 25px);
+          width: 50px;
+          height: 50px;
+        }
+        
         #fc-chat-widget-container {
           width: 90%;
+          max-width: 360px;
           height: 70vh;
           right: 5%;
           left: 5%;
-          bottom: 15%;
+          bottom: 75px;
+          margin: 0 auto;
+        }
+        
+        #fc-chat-widget-button svg {
+          width: 24px;
+          height: 24px;
         }
       }
     `;
@@ -180,12 +202,78 @@
     const container = document.getElementById('fc-chat-widget-container');
     if (container.style.display === 'none' || container.style.display === '') {
       container.style.display = 'flex';
+      // Store widget state in localStorage
+      try {
+        localStorage.setItem('fc_chat_widget_open', 'true');
+      } catch (e) {
+        console.warn('Unable to save chat state to localStorage');
+      }
       // Focus on iframe for accessibility
       setTimeout(() => {
         document.getElementById('fc-chat-widget-iframe').focus();
       }, 300);
+      
+      // Set inactive timeout to minimize after 5 minutes of inactivity
+      resetInactiveTimeout();
     } else {
       container.style.display = 'none';
+      // Update localStorage state
+      try {
+        localStorage.setItem('fc_chat_widget_open', 'false');
+      } catch (e) {
+        console.warn('Unable to save chat state to localStorage');
+      }
+      // Clear inactive timeout when chat is closed
+      clearInactiveTimeout();
+    }
+  };
+  
+  // Timeout variable for inactivity
+  let inactiveTimeout;
+  
+  // Reset inactive timeout
+  const resetInactiveTimeout = () => {
+    clearInactiveTimeout();
+    inactiveTimeout = setTimeout(() => {
+      const container = document.getElementById('fc-chat-widget-container');
+      if (container && container.style.display === 'flex') {
+        container.style.display = 'none';
+        try {
+          localStorage.setItem('fc_chat_widget_open', 'false');
+        } catch (e) {
+          console.warn('Unable to save chat state to localStorage');
+        }
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+  };
+  
+  // Clear inactive timeout
+  const clearInactiveTimeout = () => {
+    if (inactiveTimeout) {
+      clearTimeout(inactiveTimeout);
+    }
+  };
+  
+  // Track user activity to reset inactive timeout
+  const trackActivity = () => {
+    if (document.getElementById('fc-chat-widget-container').style.display === 'flex') {
+      resetInactiveTimeout();
+    }
+  };
+  
+  // Check if widget was previously open
+  const restoreChatState = () => {
+    try {
+      const wasOpen = localStorage.getItem('fc_chat_widget_open') === 'true';
+      if (wasOpen) {
+        const container = document.getElementById('fc-chat-widget-container');
+        if (container) {
+          container.style.display = 'flex';
+          resetInactiveTimeout();
+        }
+      }
+    } catch (e) {
+      console.warn('Unable to restore chat state from localStorage');
     }
   };
 
@@ -197,10 +285,22 @@
         config = {...config, ...options};
       }
       
-      // Initialize widget
+      // Initialize widget with a slight delay for better UX
       createStyles();
-      createChatButton();
-      createChatContainer();
+      
+      // Delay showing the widget button to avoid overwhelming visitors
+      setTimeout(() => {
+        createChatButton();
+        createChatContainer();
+        
+        // Set up activity tracking to reset inactive timeout
+        document.addEventListener('mousemove', trackActivity);
+        document.addEventListener('keydown', trackActivity);
+        document.addEventListener('click', trackActivity);
+        
+        // Restore previous chat state (if it was open)
+        setTimeout(restoreChatState, 500);
+      }, 2000); // 2 second delay
     }
   };
 

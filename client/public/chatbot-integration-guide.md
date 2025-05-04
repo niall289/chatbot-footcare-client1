@@ -236,6 +236,76 @@ The chatbot server requires:
 - OpenAI API access for image analysis
 - WhatsApp Business API for conversation transfer
 
+## Optimal Widget Layout Guidelines
+
+For the best user experience and highest engagement rates, we recommend the following layout guidelines for the chatbot widget:
+
+### Positioning
+
+**Desktop:**
+- **Position**: Bottom right corner of the screen
+- **Distance from edge**: 20-30px from bottom and right edges
+- **Size**: 60px diameter for button, 350-380px width when expanded
+- **Z-index**: Set to 9999 to ensure it appears above all other elements
+
+**Mobile:**
+- **Position**: Bottom of the screen, centered horizontally
+- **Distance from edge**: 15-20px from bottom
+- **Size**: 50px diameter for button, 90% width (max 360px) when expanded
+- **Z-index**: Set to 9999 to ensure it appears above all other elements
+
+### Visual Appearance
+
+- **Button color**: Match the clinic's teal branding (#00847e)
+- **Contrast ratio**: Ensure text has at least 4.5:1 contrast with background
+- **Shadows**: Subtle drop shadow (0 4px 8px rgba(0, 0, 0, 0.2))
+- **Animation**: Subtle bounce or pulse animation on page load to draw attention
+- **Icon**: Use the nurse icon for brand recognition
+
+### Behavior
+
+- **Initial state**: Collapsed button showing the nurse icon
+- **Load delay**: 2-3 seconds after page load to avoid overwhelming visitors
+- **Inactive timeout**: Minimize after 5 minutes of inactivity
+- **Return visitor**: Remember state between page views (using localStorage)
+- **Scroll behavior**: Stay in position during scrolling (fixed position)
+
+### Recommended CSS Customizations
+
+```css
+/* Custom styles to optimize widget appearance */
+#fc-chat-widget-button {
+  /* Subtle pulse animation to draw attention */
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Improve mobile layout */
+@media (max-width: 480px) {
+  #fc-chat-widget-button {
+    bottom: 15px;
+    right: calc(50% - 25px); /* Center horizontally */
+    width: 50px;
+    height: 50px;
+  }
+  
+  #fc-chat-widget-container {
+    width: 90%;
+    height: 70vh;
+    right: 5%;
+    left: 5%;
+    bottom: 80px;
+  }
+}
+```
+
+These layout guidelines have been tested for optimal visibility and engagement while maintaining a professional appearance that complements the FootCare Clinic website design.
+
 ## Data Privacy
 
 The chatbot collects user information including name, email, phone number, and potentially foot images for analysis. This information is stored securely and used only for the purpose of providing podiatry consultations and follow-up care.
