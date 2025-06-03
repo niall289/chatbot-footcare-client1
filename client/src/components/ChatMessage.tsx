@@ -10,16 +10,16 @@ interface ChatMessageProps {
 const ChatMessage: FC<ChatMessageProps> = ({ message, type, isTyping = false }) => {
   // To prevent persistent typing indicators, let's add a timeout
   const [isStillTyping, setIsStillTyping] = useState(isTyping);
-  
+
   useEffect(() => {
     setIsStillTyping(isTyping);
-    
+
     // If it's typing, set a maximum timeout to prevent it getting stuck
     if (isTyping) {
       const timer = setTimeout(() => {
         setIsStillTyping(false);
       }, 5000); // Max 5 seconds of typing animation
-      
+
       return () => clearTimeout(timer);
     }
   }, [isTyping]);
@@ -42,7 +42,7 @@ const ChatMessage: FC<ChatMessageProps> = ({ message, type, isTyping = false }) 
       </div>
     );
   }
-  
+
   return (
     <div className="flex items-start justify-end mb-4">
       <div className="mr-3 bg-primary text-white rounded-lg py-2 px-4 max-w-[80%] shadow-sm bounce-in">
