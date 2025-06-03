@@ -64,7 +64,7 @@ export const chatFlow: ChatFlow = {
     next: "clinic_location"
   },
   clinic_location: {
-    message: (userData) => `Hi ${userData.name || 'there'}! Which one of our locations would you prefer to visit?`,
+    message: (userData) => `Hi ${userData.name || 'there'}! Which one of our locations would you prefer to visit for your appointment?`,
     options: [
       { text: "Donnycarney", value: "donnycarney" },
       { text: "Palmerstown", value: "palmerstown" },
@@ -76,7 +76,7 @@ export const chatFlow: ChatFlow = {
       if (value === "palmerstown") return "clinic_info_palmerstown";
       if (value === "baldoyle") return "clinic_info_baldoyle";
       if (value === "undecided") return "clinic_info_general";
-      return "issue_category";
+      return "upload_prompt";
     }
   },
   clinic_info_donnycarney: {
