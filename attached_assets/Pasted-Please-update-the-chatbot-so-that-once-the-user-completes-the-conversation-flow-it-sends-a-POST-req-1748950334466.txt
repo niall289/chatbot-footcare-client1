@@ -1,0 +1,55 @@
+Please update the chatbot so that once the user completes the conversation flow, it sends a POST request to the following endpoint:
+
+URL:
+https://footcareclinicadmin.engageiobots.com/api/consultation
+
+Payload:
+The data should be in JSON format, exactly matching this structure:
+
+{
+  "name": "Patient full name",
+  "email": "Patient email address", 
+  "phone": "Patient phone number",
+  "preferredClinic": "donnycarney | palmerstown | baldoyle | undecided",
+  "hasImage": "yes | no",
+  "imagePath": "Path to uploaded image",
+  "imageAnalysis": "AI analysis of uploaded image",
+  "issueCategory": "nail_problems | pain_discomfort | skin_issues | structural_concerns",
+  "nailSpecifics": "ingrown_toenail | fungal_infection | thickened_nails | etc",
+  "painSpecifics": "heel | arch | ball_of_foot | toes | ankle | entire_foot",
+  "heelPainType": "morning_pain | activity_pain | deep_aching | etc",
+  "archPainType": "sharp_arch | burning_arch | cramping_arch | etc",
+  "ballFootPainType": "sharp_ball | burning_ball | pebbles_ball | etc",
+  "toePainType": "joint_toe | nail_toe | swelling_toe | etc",
+  "anklePainType": "sharp_ankle | dull_ankle | swelling_ankle | etc",
+  "entireFootPainType": "general_aching | burning_entire | cramping_entire | etc",
+  "skinSpecifics": "calluses_corns | dry_cracked_skin | rash_irritation | etc",
+  "structuralSpecifics": "bunions | hammer_toes | flat_feet | high_arches | etc",
+  "symptomDescription": "Detailed patient description",
+  "previousTreatment": "yes | no",
+  "calendarBooking": "Booking system interaction",
+  "bookingConfirmation": "Confirmation message",
+  "finalQuestion": "finished | more_questions | pricing",
+  "additionalHelp": "Patient's additional questions",
+  "emojiSurvey": "excellent | good | okay | poor",
+  "surveyResponse": "Survey feedback response",
+  "createdAt": "ISO timestamp",
+  "conversationLog": "Complete conversation array",
+  "completedSteps": "Array of completed chatbot steps"
+}
+
+Authentication:
+Use Basic Auth with no username and password set to footcare2025.
+
+Example fetch code:
+
+```ts
+const credentials = btoa(:${"footcare2025"});
+await fetch("https://footcareclinicadmin.engageiobots.com/api/consultation", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": Basic ${credentials}
+  },
+  body: JSON.stringify(payload)
+});
