@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import NurseAvatar from "./NurseAvatar";
 import PatientJourneyTracker from "./PatientJourneyTracker";
 import AnalysisResults from "./AnalysisResults";
+import { CalendarEmbed } from "./CalendarEmbed";
 import type { Consultation } from "@shared/schema";
 
 interface ChatInterfaceProps {
@@ -29,7 +30,7 @@ export default function ChatInterface({
 }: ChatInterfaceProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
-  
+
   // Use a stable chat hook instance
   const {
     messages,
@@ -53,7 +54,7 @@ export default function ChatInterface({
       } else if (consultationId) {
         onUpdateConsultation(data);
       }
-      
+
       if (currentStep === "whatsapp_handoff") {
         setShowWhatsAppButton(true);
       }
@@ -75,14 +76,14 @@ export default function ChatInterface({
       });
     }
   });
-  
+
   // Scroll to bottom when messages change
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, options]);
-  
+
   return (
     <div className="w-full max-w-lg bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-[650px] md:h-[700px]">
       {/* Chat Header */}
@@ -98,7 +99,7 @@ export default function ChatInterface({
           </span>
         </div>
       </div>
-      
+
       {/* Patient Journey Tracker */}
       {currentStep && currentStep !== 'welcome' && (
         <PatientJourneyTracker 
@@ -106,7 +107,7 @@ export default function ChatInterface({
           className="mx-4 mt-4"
         />
       )}
-      
+
       {/* Chat Messages Container */}
       <div 
         ref={chatContainerRef}
@@ -121,11 +122,11 @@ export default function ChatInterface({
               isTyping={message.isTyping} 
             />
           ))}
-          
+
           {options && options.length > 0 && (
             <ChatOptions options={options} onSelect={handleOptionSelect} />
           )}
-          
+
           {/* Display AnalysisResults when foot image analysis is available */}
           {currentData && currentData.footAnalysis && 
             (currentStep === "image_analysis_results" || currentStep === "image_analysis_confirmation") && (
@@ -138,7 +139,7 @@ export default function ChatInterface({
           )}
         </div>
       </div>
-      
+
       {/* User Input Area */}
       <div className="p-4 border-t border-gray-200 bg-white">
         {showImageUpload ? (
@@ -156,7 +157,7 @@ export default function ChatInterface({
             currentData={currentData}
           />
         )}
-        
+
         {/* WhatsApp Transfer button */}
         {showWhatsAppButton && (
           <div className="mt-4">
@@ -173,6 +174,14 @@ export default function ChatInterface({
           </div>
         )}
       </div>
+       {/* Special component rendering */}
+        {currentStep === "image_analysis_results" && currentData.footAnalysis && (
+          <AnalysisResults analysis={currentData.footAnalysis} />
+        )}
+
+        {currentStep === "calendar_booking" && (
+          <CalendarEmbed />
+        )}
     </div>
   );
 }

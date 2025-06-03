@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { nameSchema, phoneSchema, emailSchema } from "@shared/schema";
 
@@ -7,7 +8,7 @@ export interface ChatOption {
 }
 
 export type ChatStep = {
-  message: string;
+  message: string | ((userData: any) => string);
   delay?: number;
   input?: 'text' | 'tel' | 'email' | 'textarea';
   imageUpload?: boolean;
@@ -16,6 +17,8 @@ export type ChatStep = {
   options?: ChatOption[];
   optional?: boolean;
   showWhatsApp?: boolean;
+  component?: string;
+  syncToPortal?: boolean;
 } & (
   | { end: true; next?: string | ((value: string) => string) }
   | { end?: false; next: string | ((value: string) => string) }
@@ -25,9 +28,32 @@ export interface ChatFlow {
   [key: string]: ChatStep;
 }
 
+// Helper function for clinic knowledge (placeholder for now)
+function findRelevantInfo(query: string): string {
+  const lowerQuery = query.toLowerCase();
+  
+  if (lowerQuery.includes('price') || lowerQuery.includes('cost') || lowerQuery.includes('fee')) {
+    return "Our consultation fees vary depending on the treatment needed. During your appointment, our podiatrist will discuss all costs with you before any treatment begins.";
+  }
+  
+  if (lowerQuery.includes('appointment') || lowerQuery.includes('booking')) {
+    return "You can book appointments through our online system or by calling us at 089 9678596. We have locations in Donnycarney, Palmerstown, and Baldoyle.";
+  }
+  
+  if (lowerQuery.includes('location') || lowerQuery.includes('address')) {
+    return "We have three locations: Donnycarney (65 Collins Ave West), Palmerstown (Unit 4, Palmerstown Shopping Centre), and Baldoyle (123 Main Street).";
+  }
+  
+  if (lowerQuery.includes('hours') || lowerQuery.includes('open')) {
+    return "Our hours vary by location: Donnycarney (Mon, Tue, Fri 9am-6pm), Palmerstown (Wed, Thu 9am-6pm), Baldoyle (Mon-Fri 10am-7pm).";
+  }
+  
+  return "Thank you for your question. Our team will be happy to help you with this during your appointment, or you can call us at 089 9678596 for immediate assistance.";
+}
+
 export const chatFlow: ChatFlow = {
   welcome: {
-    message: "👋 Hello! I'm Fiona, your FootCare Clinic virtual assistant. I'll help gather some information about your foot concerns and connect you with our specialists. Before we begin, I'll need to collect some basic information. Rest assured, your data is kept private and secure.",
+    message: "👋 Hello! I'm Fiona, your FootCare Clinic virtual assistant. I'll help gather some information about your foot and nail concerns and connect you with our team if needs be. Before we begin, I'll need to collect some basic information. Rest assured, your data is kept private and secure.",
     next: "name"
   },
   name: {
@@ -35,33 +61,10 @@ export const chatFlow: ChatFlow = {
     input: "text",
     validation: (value) => nameSchema.safeParse(value).success,
     errorMessage: "Please enter your name (at least 2 characters)",
-    next: (value) => {
-      // Store the name and always go to phone step
-      return "phone";
-    }
+    next: "clinic_location"
   },
-  phone: {
-    message: "Great! Now, could you please provide your phone number?",
-    input: "tel",
-    validation: (value) => phoneSchema.safeParse(value).success,
-    errorMessage: "Please enter a valid phone number (10-15 digits)",
-    next: (value) => {
-      // Always go to email - never go back to name
-      return "email";
-    }
-  },
-  email: {
-    message: "Thank you! Please share your email address:",
-    input: "email",
-    validation: (value) => emailSchema.safeParse(value).success,
-    errorMessage: "Please enter a valid email address",
-    next: (value) => {
-      // Always go to clinic selection - never go back to name or phone
-      return "preferred_clinic";
-    }
-  },
-  preferred_clinic: {
-    message: "Which of our locations would you prefer to visit?",
+  clinic_location: {
+    message: (userData) => `Hi ${userData.name || 'there'}! Which one of our locations would you prefer to visit?`,
     options: [
       { text: "Donnycarney", value: "donnycarney" },
       { text: "Palmerstown", value: "palmerstown" },
@@ -69,137 +72,329 @@ export const chatFlow: ChatFlow = {
       { text: "Not sure yet", value: "undecided" }
     ],
     next: (value) => {
-      // Always proceed forward - never go backward in the flow
-      return "upload_image_prompt";
-    }
-  },
-  upload_image_prompt: {
-    message: "Would you like to upload a photo of your foot concern? This can help us provide a more accurate assessment.",
-    options: [
-      { text: "Yes, I'll upload an image", value: "yes" },
-      { text: "No, I prefer not to", value: "no" }
-    ],
-    next: (value) => {
-      if (value === "yes") return "image_upload_instructions";
+      if (value === "donnycarney") return "clinic_info_donnycarney";
+      if (value === "palmerstown") return "clinic_info_palmerstown";
+      if (value === "baldoyle") return "clinic_info_baldoyle";
+      if (value === "undecided") return "clinic_info_general";
       return "issue_category";
     }
   },
-  image_upload_instructions: {
-    message: "Great! Please upload a clear photo of your foot concern. The image should be well-lit and show the affected area clearly. For privacy, avoid including any identifiable features or personal information in the photo.",
+  clinic_info_donnycarney: {
+    message: "Great choice! Our Donnycarney clinic is open Monday, Tuesday & Friday from 9am-6pm. The address is: 65 Collins Ave West, Donnycarney, Dublin 9, D09 KY03",
+    next: "upload_prompt"
+  },
+  clinic_info_palmerstown: {
+    message: "Great choice! Our Palmerstown clinic is open Wednesday & Thursday from 9am-6pm. The address is: Unit 4, Palmerstown Shopping Centre, Palmerstown, Dublin 20, D20 XC67",
+    next: "upload_prompt"
+  },
+  clinic_info_baldoyle: {
+    message: "Great choice! Our Baldoyle clinic is open Monday to Friday from 10am-7pm. The address is: 123 Main Street, Baldoyle, Dublin 13, D13 AB45",
+    next: "upload_prompt"
+  },
+  clinic_info_general: {
+    message: "Great choice! No worries - we can help you decide on the best location during your consultation. All our clinics offer the same high-quality care.",
+    next: "upload_prompt"
+  },
+  upload_prompt: {
+    message: "Would you like to upload a photo of your foot concern? This can help us provide a better assessment.",
+    options: [
+      { text: "Yes", value: "yes" },
+      { text: "No", value: "no" }
+    ],
+    next: (value) => {
+      if (value === "yes") return "image_upload";
+      return "issue_category";
+    }
+  },
+  image_upload: {
+    message: "Please upload a clear photo of your foot concern:",
     imageUpload: true,
-    next: "image_analysis_results",
+    next: "image_analysis",
     delay: 1000
   },
-  image_analysis_results: {
+  image_analysis: {
     message: "Thank you for sharing your image. Our AI system has analyzed it, but for a complete and accurate assessment, our podiatrists will need to examine your foot in person during your consultation.",
-    next: "image_analysis_confirmation",
-    delay: 8000
+    next: "image_analysis_results",
+    delay: 2000
   },
-  image_analysis_confirmation: {
-    message: "Based on this preliminary AI analysis, I've noted your foot condition in our system. Let's continue with a few more questions to ensure we provide the best care for your needs.",
+  image_analysis_results: {
+    message: "Based on your description, I've analyzed your symptoms. This information will help our specialists provide better care during your visit.",
+    component: "AnalysisResults",
     next: "issue_category",
-    delay: 3000
+    delay: 10000
   },
   issue_category: {
     message: "What type of foot concern brings you to our clinic today?",
     options: [
-      { text: "Pain or discomfort", value: "pain" },
-      { text: "Skin issues", value: "skin" },
-      { text: "Nail problems", value: "nail" },
-      { text: "Structural concerns", value: "structural" },
-      { text: "Other concern", value: "other" }
+      { text: "Nail problems", value: "nail_problems" },
+      { text: "Pain or discomfort", value: "pain_discomfort" },
+      { text: "Skin issues", value: "skin_issues" },
+      { text: "Structural concerns", value: "structural_concerns" }
     ],
     next: (value) => {
-      if (value === "pain") return "pain_specifics";
-      if (value === "skin") return "skin_specifics";
-      if (value === "nail") return "nail_specifics";
-      if (value === "structural") return "structural_specifics";
-      return "other_specifics";
+      if (value === "nail_problems") return "nail_specifics";
+      if (value === "pain_discomfort") return "pain_specifics";
+      if (value === "skin_issues") return "skin_specifics";
+      if (value === "structural_concerns") return "structural_specifics";
+      return "details";
     }
+  },
+  nail_specifics: {
+    message: "Which specific nail issue are you experiencing?",
+    options: [
+      { text: "Ingrown toenail", value: "ingrown_toenail" },
+      { text: "Fungal infection", value: "fungal_infection" },
+      { text: "Thickened nails", value: "thickened_nails" },
+      { text: "Discolored nails", value: "discolored_nails" },
+      { text: "Other nail issue", value: "other_nail_issue" }
+    ],
+    next: "symptom_description_prompt"
   },
   pain_specifics: {
     message: "Where are you experiencing foot pain?",
     options: [
       { text: "Heel", value: "heel" },
       { text: "Arch", value: "arch" },
-      { text: "Ball of foot", value: "ball" },
+      { text: "Ball of foot", value: "ball_of_foot" },
       { text: "Toes", value: "toes" },
       { text: "Ankle", value: "ankle" },
-      { text: "Entire foot", value: "entire" }
+      { text: "Entire foot", value: "entire_foot" }
     ],
-    next: "pain_duration"
+    next: (value) => {
+      if (value === "heel") return "heel_pain_type";
+      if (value === "arch") return "arch_pain_type";
+      if (value === "ball_of_foot") return "ball_foot_pain_type";
+      if (value === "toes") return "toe_pain_type";
+      if (value === "ankle") return "ankle_pain_type";
+      if (value === "entire_foot") return "entire_foot_pain_type";
+      return "symptom_description";
+    }
   },
-  pain_duration: {
-    message: "How long have you been experiencing this pain?",
+  heel_pain_type: {
+    message: "What type of heel pain are you experiencing?",
     options: [
-      { text: "Less than a week", value: "acute" },
-      { text: "1-4 weeks", value: "subacute" },
-      { text: "1-3 months", value: "chronic_recent" },
-      { text: "More than 3 months", value: "chronic_long" }
+      { text: "Pain in the morning/after rest", value: "morning_pain" },
+      { text: "Pain during activity", value: "activity_pain" },
+      { text: "Deep aching pain", value: "deep_aching" },
+      { text: "Sharp pain when pressing", value: "sharp_pressing" },
+      { text: "Pain after long periods of standing", value: "standing_pain" },
+      { text: "Other heel pain", value: "other_heel_pain" }
     ],
-    next: "pain_severity"
+    next: "symptom_description_prompt"
   },
-  pain_severity: {
-    message: "On a scale from 1-10, how would you rate your pain?",
+  arch_pain_type: {
+    message: "What type of arch pain are you experiencing?",
     options: [
-      { text: "1-3 (Mild)", value: "mild" },
-      { text: "4-6 (Moderate)", value: "moderate" },
-      { text: "7-10 (Severe)", value: "severe" }
+      { text: "Sharp pain in arch", value: "sharp_arch" },
+      { text: "Burning sensation", value: "burning_arch" },
+      { text: "Cramping in arch", value: "cramping_arch" },
+      { text: "Stabbing pain", value: "stabbing_arch" },
+      { text: "Tight feeling", value: "tight_arch" },
+      { text: "Other arch pain", value: "other_arch_pain" }
     ],
-    next: "additional_info"
+    next: "symptom_description_prompt"
+  },
+  ball_foot_pain_type: {
+    message: "What type of pain are you experiencing in the ball of your foot?",
+    options: [
+      { text: "Sharp shooting pain", value: "sharp_ball" },
+      { text: "Burning sensation", value: "burning_ball" },
+      { text: "Feeling like walking on pebbles", value: "pebbles_ball" },
+      { text: "Numbness or tingling", value: "numbness_ball" },
+      { text: "Throbbing pain", value: "throbbing_ball" },
+      { text: "Other ball of foot pain", value: "other_ball_pain" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  toe_pain_type: {
+    message: "What type of toe pain are you experiencing?",
+    options: [
+      { text: "Joint pain", value: "joint_toe" },
+      { text: "Nail-related pain", value: "nail_toe" },
+      { text: "Swelling and pain", value: "swelling_toe" },
+      { text: "Stiffness", value: "stiffness_toe" },
+      { text: "Sharp shooting pain", value: "sharp_toe" },
+      { text: "Other toe pain", value: "other_toe_pain" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  ankle_pain_type: {
+    message: "What type of ankle pain are you experiencing?",
+    options: [
+      { text: "Sharp pain when moving", value: "sharp_ankle" },
+      { text: "Dull aching pain", value: "dull_ankle" },
+      { text: "Swelling and pain", value: "swelling_ankle" },
+      { text: "Stiffness", value: "stiffness_ankle" },
+      { text: "Instability feeling", value: "instability_ankle" },
+      { text: "Other ankle pain", value: "other_ankle_pain" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  entire_foot_pain_type: {
+    message: "What type of pain affects your entire foot?",
+    options: [
+      { text: "General aching", value: "general_aching" },
+      { text: "Burning sensation", value: "burning_entire" },
+      { text: "Cramping", value: "cramping_entire" },
+      { text: "Numbness or tingling", value: "numbness_entire" },
+      { text: "Swelling and pain", value: "swelling_entire" },
+      { text: "Other general foot pain", value: "other_entire_pain" }
+    ],
+    next: "symptom_description_prompt"
   },
   skin_specifics: {
-    message: "What skin issue are you experiencing?",
+    message: "What type of skin issue are you experiencing?",
     options: [
-      { text: "Dry/cracked skin", value: "dry" },
-      { text: "Calluses/corns", value: "callus" },
+      { text: "Calluses or corns", value: "calluses_corns" },
+      { text: "Dry or cracked skin", value: "dry_cracked_skin" },
+      { text: "Rash or irritation", value: "rash_irritation" },
       { text: "Warts", value: "warts" },
-      { text: "Rash/itching", value: "rash" },
       { text: "Athlete's foot", value: "athletes_foot" },
-      { text: "Other skin issue", value: "other_skin" }
+      { text: "Other skin issue", value: "other_skin_issue" }
     ],
-    next: "additional_info"
+    next: (value) => {
+      if (value === "calluses_corns") return "calluses_details";
+      if (value === "dry_cracked_skin") return "dry_skin_details";
+      if (value === "rash_irritation") return "rash_details";
+      if (value === "warts") return "warts_details";
+      if (value === "athletes_foot") return "athletes_foot_details";
+      return "symptom_description";
+    }
   },
-  nail_specifics: {
-    message: "What nail problem are you experiencing?",
+  calluses_details: {
+    message: "Where are your calluses or corns located?",
     options: [
-      { text: "Ingrown toenail", value: "ingrown" },
-      { text: "Fungal infection", value: "fungal" },
-      { text: "Thickened nails", value: "thick" },
-      { text: "Discolored nails", value: "discolored" },
-      { text: "Other nail issue", value: "other_nail" }
+      { text: "Bottom of feet", value: "bottom_calluses" },
+      { text: "Between toes", value: "between_toes_calluses" },
+      { text: "On top of toes", value: "top_toes_calluses" },
+      { text: "Sides of feet", value: "sides_calluses" },
+      { text: "Multiple areas", value: "multiple_calluses" }
     ],
-    next: "additional_info"
+    next: "symptom_description_prompt"
+  },
+  dry_skin_details: {
+    message: "How severe is the dry or cracked skin?",
+    options: [
+      { text: "Mild dryness", value: "mild_dry" },
+      { text: "Moderate cracking", value: "moderate_cracking" },
+      { text: "Deep cracks that bleed", value: "deep_cracks" },
+      { text: "Painful cracking", value: "painful_cracking" },
+      { text: "Widespread dryness", value: "widespread_dry" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  rash_details: {
+    message: "What does the rash or irritation look like?",
+    options: [
+      { text: "Red and itchy", value: "red_itchy" },
+      { text: "Scaly patches", value: "scaly_patches" },
+      { text: "Blistering", value: "blistering" },
+      { text: "Burning sensation", value: "burning_rash" },
+      { text: "Swollen and inflamed", value: "swollen_inflamed" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  warts_details: {
+    message: "Where are the warts located?",
+    options: [
+      { text: "Bottom of foot (plantar)", value: "plantar_warts" },
+      { text: "Between toes", value: "between_toes_warts" },
+      { text: "On toes", value: "toe_warts" },
+      { text: "Multiple locations", value: "multiple_warts" },
+      { text: "Single large wart", value: "single_wart" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  athletes_foot_details: {
+    message: "What symptoms are you experiencing with athlete's foot?",
+    options: [
+      { text: "Itching between toes", value: "itching_toes" },
+      { text: "Burning sensation", value: "burning_athletes" },
+      { text: "Peeling skin", value: "peeling_skin" },
+      { text: "Cracking between toes", value: "cracking_toes" },
+      { text: "Bad odor", value: "bad_odor" }
+    ],
+    next: "symptom_description_prompt"
   },
   structural_specifics: {
-    message: "What structural concern do you have?",
+    message: "What type of structural concern do you have?",
     options: [
       { text: "Bunions", value: "bunions" },
-      { text: "Hammertoes", value: "hammertoes" },
+      { text: "Hammer toes", value: "hammer_toes" },
       { text: "Flat feet", value: "flat_feet" },
       { text: "High arches", value: "high_arches" },
-      { text: "Other structural issue", value: "other_structural" }
+      { text: "Claw toes", value: "claw_toes" },
+      { text: "Other structural issue", value: "other_structural_issue" }
     ],
-    next: "additional_info"
+    next: (value) => {
+      if (value === "bunions") return "bunions_details";
+      if (value === "hammer_toes") return "hammer_toes_details";
+      if (value === "flat_feet") return "flat_feet_details";
+      if (value === "high_arches") return "high_arches_details";
+      if (value === "claw_toes") return "claw_toes_details";
+      return "symptom_description";
+    }
   },
-  other_specifics: {
-    message: "Please briefly describe your foot concern:",
-    input: "text",
-    validation: (value) => value.trim().length > 0,
-    errorMessage: "Please provide a brief description",
-    next: "additional_info"
+  bunions_details: {
+    message: "How would you describe your bunion symptoms?",
+    options: [
+      { text: "Visible bump, mild pain", value: "mild_bunion" },
+      { text: "Moderate pain when walking", value: "moderate_bunion" },
+      { text: "Severe pain, difficulty with shoes", value: "severe_bunion" },
+      { text: "Swelling and redness", value: "swollen_bunion" },
+      { text: "Toe pointing toward other toes", value: "angled_bunion" }
+    ],
+    next: "symptom_description_prompt"
   },
-  additional_info: {
-    message: "Is there anything else you'd like to share about your condition?",
-    input: "textarea",
-    optional: true,
+  hammer_toes_details: {
+    message: "Which toes are affected and how severe?",
+    options: [
+      { text: "Second toe, mild bend", value: "mild_hammer" },
+      { text: "Multiple toes affected", value: "multiple_hammer" },
+      { text: "Severe bend, painful", value: "severe_hammer" },
+      { text: "Corns on bent joints", value: "corns_hammer" },
+      { text: "Difficulty with shoes", value: "shoes_hammer" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  flat_feet_details: {
+    message: "What symptoms are you experiencing with flat feet?",
+    options: [
+      { text: "Arch pain or fatigue", value: "arch_flat" },
+      { text: "Ankle pain", value: "ankle_flat" },
+      { text: "Knee or hip pain", value: "knee_hip_flat" },
+      { text: "Difficulty finding shoes", value: "shoes_flat" },
+      { text: "Swelling on inside of ankle", value: "swelling_flat" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  high_arches_details: {
+    message: "What problems are your high arches causing?",
+    options: [
+      { text: "Pain in arch area", value: "pain_high_arch" },
+      { text: "Pressure on ball of foot", value: "pressure_high_arch" },
+      { text: "Ankle instability", value: "unstable_high_arch" },
+      { text: "Difficulty with shoe fit", value: "shoes_high_arch" },
+      { text: "Calluses on ball of foot", value: "calluses_high_arch" }
+    ],
+    next: "symptom_description_prompt"
+  },
+  claw_toes_details: {
+    message: "How severe are your claw toe symptoms?",
+    options: [
+      { text: "Mild bending, no pain", value: "mild_claw" },
+      { text: "Moderate bend with pain", value: "moderate_claw" },
+      { text: "Severe curling, very painful", value: "severe_claw" },
+      { text: "Corns on top of toes", value: "corns_claw" },
+      { text: "Cannot straighten toes", value: "fixed_claw" }
+    ],
     next: "symptom_description_prompt"
   },
   symptom_description_prompt: {
-    message: "Would you like to describe your symptoms in your own words? This will help our specialists prepare for your consultation.",
+    message: "Would you like to provide additional details about your symptoms?",
     options: [
-      { text: "Yes, I'll describe my symptoms", value: "yes" },
-      { text: "No, continue to next step", value: "no" }
+      { text: "Yes", value: "yes" },
+      { text: "No", value: "no" }
     ],
     next: (value) => {
       if (value === "yes") return "symptom_description";
@@ -211,86 +406,201 @@ export const chatFlow: ChatFlow = {
     input: "textarea",
     validation: (value) => value.trim().length > 10,
     errorMessage: "Please provide a more detailed description (at least 10 characters)",
-    next: "analyzing_symptoms"
-  },
-  analyzing_symptoms: {
-    message: "Thank you for describing your symptoms. I'll pass this information to our specialists...",
-    next: "symptom_analysis_handoff",
-    delay: 1000
-  },
-  symptom_analysis_handoff: {
-    message: "Our foot care specialists will review your symptom description during your appointment to provide a thorough assessment. This information helps us prepare for your visit.",
-    next: "previous_treatment",
-    delay: 1000
+    next: "previous_treatment"
   },
   previous_treatment: {
-    message: "Have you previously received treatment for this condition?",
+    message: "Have you tried any treatments for this condition before?",
     options: [
       { text: "Yes", value: "yes" },
       { text: "No", value: "no" }
     ],
-    next: "prepare_transfer"
+    next: "email"
   },
-  prepare_transfer: {
-    message: "Thank you for providing this information. Based on what you've shared, I'd like to connect you with our specialist for a more detailed consultation.",
-    next: "transfer_whatsapp",
-    delay: 1500
+  email: {
+    message: "Please share your email address so we can send you appointment details:",
+    input: "email",
+    validation: (value) => emailSchema.safeParse(value).success,
+    errorMessage: "Please enter a valid email address",
+    next: "phone"
   },
-  transfer_whatsapp: {
-    message: "I can transfer you to our clinic's WhatsApp for a direct conversation with our foot care specialist. Would you like to continue there?",
+  phone: {
+    message: "Finally, could you please provide your phone number?",
+    input: "tel",
+    validation: (value) => phoneSchema.safeParse(value).success,
+    errorMessage: "Please enter a valid phone number (10-15 digits)",
+    next: "confirm"
+  },
+  confirm: {
+    message: "Perfect! Here's our online booking system. Once you've completed your booking, let me know:",
+    next: "calendar_booking",
+    delay: 1000
+  },
+  calendar_booking: {
+    message: "",
+    component: "CalendarEmbed",
     options: [
-      { text: "Yes, transfer to WhatsApp", value: "transfer" },
-      { text: "No, I'll call the clinic", value: "call" }
+      { text: "✅ Done! I've completed my booking", value: "booked" }
+    ],
+    next: "booking_confirmation"
+  },
+  booking_confirmation: {
+    message: (userData) => `Thanks for booking your appointment online, ${userData.name}! We look forward to seeing you soon. For any other queries, please feel free to contact us on 089 9678596.`,
+    next: "final_question",
+    delay: 1000,
+    syncToPortal: true
+  },
+  final_question: {
+    message: (userData) => `Is there anything else I can help you with today, ${userData.name}?`,
+    options: [
+      { text: "No, that's all for now", value: "finished" },
+      { text: "Yes, I have another question", value: "more_questions" },
+      { text: "I'd like to know about pricing", value: "pricing" }
     ],
     next: (value) => {
-      if (value === "transfer") return "whatsapp_handoff";
-      return "provide_phone";
+      if (value === "finished") return "thanks";
+      if (value === "pricing") return "pricing_info";
+      return "additional_help";
     }
   },
-  whatsapp_handoff: {
-    message: "Great! Click the WhatsApp button below to continue your conversation with our specialist. Your information will be transferred securely.",
-    showWhatsApp: true,
-    next: "end"
-  },
-  provide_phone: {
-    message: "You can reach our clinic at 01 851 4444 during our operating hours: Monday-Friday 9am-5pm. Thank you for contacting FootCare Clinic!",
-    next: "end"
-  },
-  end: {
-    message: "Is there anything else I can help you with today?",
+  pricing_info: {
+    message: "Our consultation fees vary depending on the treatment needed. During your appointment, our podiatrist will discuss all costs with you before any treatment begins. Is there anything else I can help with?",
     options: [
-      { text: "No, that's all for now", value: "goodbye" },
-      { text: "Yes, I have another question", value: "restart" }
+      { text: "No, that's all for now", value: "finished" },
+      { text: "Yes, I have another question", value: "more_questions" }
     ],
     next: (value) => {
-      if (value === "restart") return "issue_category";
-      return "goodbye";
+      if (value === "finished") return "thanks";
+      return "additional_help";
     }
   },
-  goodbye: {
-    message: "Thank you for contacting FootCare Clinic! We look forward to helping you feel better soon. Goodbye! 👋",
+  additional_help: {
+    message: "What would you like to know more about?",
+    input: "textarea",
+    optional: true,
+    next: "help_response"
+  },
+  help_response: {
+    message: (userData) => {
+      if (userData.userInput) {
+        const response = findRelevantInfo(userData.userInput);
+        return `${response}\n\nIs there anything else I can help you with?`;
+      }
+      return "Thank you for your question. Our team will be happy to help you with this during your appointment, or you can call us at 089 9678596 for immediate assistance.";
+    },
+    options: [
+      { text: "No, that's all for now", value: "finished" },
+      { text: "Yes, I have another question", value: "more_questions" }
+    ],
+    next: (value) => {
+      if (value === "finished") return "thanks";
+      return "additional_help";
+    }
+  },
+  thanks: {
+    message: "Thank you for contacting FootCare Clinic! We look forward to helping you feel better soon. Have a great day! 👋",
+    next: "emoji_survey",
+    delay: 1000
+  },
+  emoji_survey: {
+    message: "Before you go, how was your experience today? Please rate us:",
+    options: [
+      { text: "😍 Excellent", value: "excellent" },
+      { text: "😊 Good", value: "good" },
+      { text: "😐 Okay", value: "okay" },
+      { text: "😞 Poor", value: "poor" }
+    ],
+    next: "survey_response"
+  },
+  survey_response: {
+    message: (userData) => {
+      const rating = userData.userInput || userData.emoji_survey;
+      if (rating === "excellent" || rating === "good") {
+        return "Thank you for the positive feedback! We're delighted we could help. 🌟";
+      } else if (rating === "okay") {
+        return "Thank you for your feedback. We're always looking to improve our service!";
+      } else if (rating === "poor") {
+        return "We're sorry your experience wasn't great. Please call us at 089 9678596 so we can make it right.";
+      } else {
+        return "Thank you for your feedback! We appreciate you taking the time to rate us.";
+      }
+    },
+    next: "helpful_tips",
+    delay: 1000
+  },
+  helpful_tips: {
+    message: "💡 Quick tip: For the best foot health, wear properly fitting shoes and keep your feet clean and dry daily. See you soon!",
     end: true,
-    next: "goodbye" // Adding this to fix TypeScript error, though it won't be used due to end=true
+    next: "welcome"
   }
 };
 
 export const chatStepToField: Record<string, string> = {
+  // Basic info
   name: "name",
-  phone: "phone",
+  phone: "phone", 
   email: "email",
-  preferred_clinic: "preferredClinic",
-  upload_image_prompt: "hasImage",
+  clinic_location: "preferredClinic",
+  
+  // Image upload
+  upload_prompt: "hasImage",
+  image_upload: "imagePath",
+  image_analysis: "imageAnalysis",
+  image_analysis_results: "imageAnalysisResults",
+  
+  // Main issue categorization
   issue_category: "issueCategory",
-  pain_specifics: "issueSpecifics",
-  skin_specifics: "issueSpecifics",
-  nail_specifics: "issueSpecifics",
-  structural_specifics: "issueSpecifics",
-  other_specifics: "issueSpecifics",
-  pain_duration: "painDuration",
-  pain_severity: "painSeverity",
-  additional_info: "additionalInfo",
-  symptom_description_prompt: "hasSymptomDescription",
+  
+  // Nail specifics
+  nail_specifics: "nailSpecifics",
+  
+  // Pain specifics and detailed pain types
+  pain_specifics: "painLocation",
+  heel_pain_type: "heelPainType",
+  arch_pain_type: "archPainType", 
+  ball_foot_pain_type: "ballFootPainType",
+  toe_pain_type: "toePainType",
+  ankle_pain_type: "anklePainType",
+  entire_foot_pain_type: "entireFootPainType",
+  
+  // Skin specifics and detailed skin conditions
+  skin_specifics: "skinSpecifics",
+  calluses_details: "callusesDetails",
+  dry_skin_details: "drySkinDetails",
+  rash_details: "rashDetails", 
+  warts_details: "wartsDetails",
+  athletes_foot_details: "athletesFootDetails",
+  
+  // Structural specifics and detailed structural issues
+  structural_specifics: "structuralSpecifics",
+  bunions_details: "bunionsDetails",
+  hammer_toes_details: "hammerToesDetails",
+  flat_feet_details: "flatFeetDetails",
+  high_arches_details: "highArchesDetails",
+  claw_toes_details: "clawToesDetails",
+  
+  // Symptom description
+  symptom_description_prompt: "symptomDescriptionPrompt",
   symptom_description: "symptomDescription",
+  
+  // Treatment history
   previous_treatment: "previousTreatment",
-  transfer_whatsapp: "transferredToWhatsApp"
+  
+  // Booking and confirmation
+  calendar_booking: "calendarBooking",
+  booking_confirmation: "bookingConfirmation",
+  
+  // Additional help and questions
+  final_question: "finalQuestion",
+  pricing_info: "pricingInfo",
+  additional_help: "userInput",
+  help_response: "helpResponse",
+  
+  // Survey and feedback
+  emoji_survey: "emojiSurvey",
+  survey_response: "surveyResponse",
+  
+  // Legacy mappings for backwards compatibility
+  service_selection: "issueCategory",
+  details: "details",
+  whatsapp_option: "whatsappConsent"
 };
