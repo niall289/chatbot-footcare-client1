@@ -444,10 +444,15 @@ export const chatFlow: ChatFlow = {
     next: "booking_confirmation"
   },
   booking_confirmation: {
-    message: (userData) => `Thanks for booking your appointment online, ${userData.name}! We look forward to seeing you soon. For any other queries, please feel free to contact us on 089 9678596.`,
-    next: "final_question",
+    message: (userData) => `🎉 Thank you, ${userData.name}! Your appointment has been successfully booked.`,
+    next: "booking_thank_you",
     delay: 1000,
     syncToPortal: true
+  },
+  booking_thank_you: {
+    message: "We're excited to help you with your foot care needs! You'll receive a confirmation email shortly with all the details. Our team is looking forward to seeing you at your scheduled appointment. For any questions before your visit, please feel free to contact us on 089 9678596.",
+    next: "final_question",
+    delay: 2000
   },
   final_question: {
     message: (userData) => `Is there anything else I can help you with today, ${userData.name}?`,
