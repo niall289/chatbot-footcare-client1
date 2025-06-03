@@ -46,7 +46,7 @@ export default function UserInput({
   const handleSubmit = () => {
     if (disabled || !type) return;
     
-    if (validate) {
+    if (validate && value.trim().length > 0) {
       const result = validate(value);
       if (!result.isValid) {
         setError(result.errorMessage);

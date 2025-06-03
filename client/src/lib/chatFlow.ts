@@ -419,7 +419,7 @@ export const chatFlow: ChatFlow = {
   email: {
     message: "Please share your email address so we can send you appointment details:",
     input: "email",
-    validation: (value) => emailSchema.safeParse(value).success,
+    validation: (value) => value.trim().length === 0 || emailSchema.safeParse(value).success,
     errorMessage: "Please enter a valid email address",
     next: "phone"
   },
