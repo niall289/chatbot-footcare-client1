@@ -95,6 +95,67 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
     setIsWaitingForResponse(false);
   }, [processStepRef]);
 
+  // Function to send conversation data to admin portal
+  const sendToAdminPortal = useCallback(async (conversationData: Record<string, any>) => {
+    try {
+      console.log("Sending conversation data to admin portal...");
+      
+      // Create the payload matching the required structure
+      const payload = {
+        name: conversationData.name || "",
+        email: conversationData.email || "",
+        phone: conversationData.phone || "",
+        preferredClinic: conversationData.preferredClinic || "undecided",
+        hasImage: conversationData.hasImage || "no",
+        imagePath: conversationData.imagePath || "",
+        imageAnalysis: conversationData.imageAnalysis || "",
+        issueCategory: conversationData.issueCategory || "",
+        nailSpecifics: conversationData.nailSpecifics || "",
+        painSpecifics: conversationData.painLocation || "",
+        heelPainType: conversationData.heelPainType || "",
+        archPainType: conversationData.archPainType || "",
+        ballFootPainType: conversationData.ballFootPainType || "",
+        toePainType: conversationData.toePainType || "",
+        anklePainType: conversationData.anklePainType || "",
+        entireFootPainType: conversationData.entireFootPainType || "",
+        skinSpecifics: conversationData.skinSpecifics || "",
+        structuralSpecifics: conversationData.structuralSpecifics || "",
+        symptomDescription: conversationData.symptomDescription || "",
+        previousTreatment: conversationData.previousTreatment || "",
+        calendarBooking: conversationData.calendarBooking || "",
+        bookingConfirmation: conversationData.bookingConfirmation || "",
+        finalQuestion: conversationData.finalQuestion || "",
+        additionalHelp: conversationData.userInput || "",
+        emojiSurvey: conversationData.emojiSurvey || "",
+        surveyResponse: conversationData.surveyResponse || "",
+        createdAt: new Date().toISOString(),
+        conversationLog: conversationData.conversationLog || [],
+        completedSteps: Object.keys(conversationData)
+      };
+
+      // Create Basic Auth credentials
+      const credentials = btoa(`:footcare2025`);
+      
+      // Send POST request to admin portal
+      const response = await fetch("https://footcareclinicadmin.engageiobots.com/api/consultation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${credentials}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        console.log("Successfully sent conversation data to admin portal");
+      } else {
+        console.error("Failed to send data to admin portal:", response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error("Error sending data to admin portal:", error);
+    }
+  }, []);
+
   // Process a step in the chat flow
   const processStep = useCallback((stepId: string) => {
     // Safety check - prevent going back to asking name if we already have it
@@ -122,6 +183,17 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
 
     const step = chatFlow[safeStepId];
     if (!step) return;
+
+    // Check if this is the helpful_tips step completion and send data to admin portal
+    if (safeStepId === "helpful_tips" && step.end) {
+      // Send conversation data to admin portal after a short delay
+      setTimeout(async () => {
+        await sendToAdminPortal({
+          ...userData,
+          conversationLog
+        });
+      }, 1000);
+    }
 
     // Clear any previous typing indicators first
     setMessages(prev => prev.map(msg => ({...msg, isTyping: false})));
@@ -221,7 +293,7 @@ ${analysis.disclaimer}
         setupStepInput(step);
       }
     }, 500);
-  }, [addMessage, setupStepInput, userData]);
+  }, [addMessage, setupStepInput, userData, conversationLog, sendToAdminPortal]);
 
   // Update the ref to the actual processStep function
   useEffect(() => {
