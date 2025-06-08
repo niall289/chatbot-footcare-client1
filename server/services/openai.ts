@@ -5,7 +5,8 @@ function createOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
   
   if (!apiKey) {
-    console.error("WARNING: OPENAI_API_KEY is not set in environment variables");
+    console.warn("WARNING: OPENAI_API_KEY is not set. OpenAI dependent services will be skipped or use fallback data.");
+    return null; // Return null if API key is missing
   }
   
   return new OpenAI({
@@ -21,6 +22,16 @@ const MODEL = "gpt-4o";
 // Create OpenAI client instance
 const openai = createOpenAIClient();
 
+const fallbackImageAnalysisResponse = {
+  condition: "Unable to analyze image (OpenAI API key missing or service unavailable)",
+  severity: "unknown",
+  recommendations: [
+    "Continue with the consultation to describe your symptoms.",
+    "Consider visiting a clinic for an in-person assessment if concerned."
+  ],
+  disclaimer: "This is a fallback response due to an API issue. Please describe your symptoms or visit a clinic for proper assessment."
+};
+
 /**
  * Analyze a foot image using OpenAI's vision model
  * @param imageBase64 Base64 encoded image data (without data URL prefix)
@@ -32,6 +43,11 @@ export async function analyzeFootImage(imageBase64: string): Promise<{
   recommendations: string[];
   disclaimer: string;
 }> {
+  if (!openai) {
+    console.warn("analyzeFootImage: OpenAI client not available. Returning fallback response.");
+    return fallbackImageAnalysisResponse;
+  }
+
   try {
     // Create a data URL from the base64 string
     const imageUrl = `data:image/jpeg;base64,${imageBase64}`;
@@ -113,15 +129,6 @@ export async function analyzeFootImage(imageBase64: string): Promise<{
     
     // Return a fallback response to keep the chat flow going
     console.log("Using fallback response for image analysis due to API error");
-    return {
-      condition: "Unable to analyze image at this time",
-      severity: "unknown",
-      recommendations: [
-        "Continue with the consultation",
-        "Describe your symptoms in detail", 
-        "Visit a clinic for in-person assessment"
-      ],
-      disclaimer: "This is a fallback response due to an API issue. Please visit the clinic for proper assessment."
-    };
+    return fallbackImageAnalysisResponse;
   }
 }

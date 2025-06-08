@@ -606,6 +606,5 @@ export const chatStepToField: Record<string, string> = {
   
   // Legacy mappings for backwards compatibility
   service_selection: "issueCategory",
-  details: "details",
-  whatsapp_option: "whatsappConsent"
+  details: "details"
 };

@@ -27,11 +27,11 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
   // Add a message to the chat with duplicate prevention
   const addMessage = useCallback((text: string, type: "bot" | "user", isTyping = false) => {
     // Don't add duplicate messages - especially important for bot messages
-    setMessages(prev => {
+    setMessages((prev: Message[]) => {
       // Check if this exact message (same text and type) already exists
-      const isDuplicate = prev.some(msg => 
-        msg.text === text && 
-        msg.type === type && 
+      const isDuplicate = prev.some((msg: Message) =>
+        msg.text === text &&
+        msg.type === type &&
         !msg.isTyping
       );
 
@@ -66,13 +66,19 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
     setUserData(updatedData);
 
     // Determine if this is a complete submission point
-    const isComplete = step === "previous_treatment" || step === "transfer_whatsapp";
+    const isComplete = false; // This is not used for submission triggering
 
     // Call parent callback with data
-    onSaveData({ 
-      ...updatedData, 
-      conversationLog: updatedLog 
+    onSaveData({
+      ...updatedData,
+      conversationLog: updatedLog
     }, isComplete);
+
+    // If the step is marked for syncing, send the data now.
+    const stepConfig = chatFlow[step];
+    if (stepConfig?.syncToPortal) {
+      sendToAdminPortal({ ...updatedData, conversationLog: updatedLog });
+    }
   }, [userData, conversationLog, onSaveData]);
 
   // Handle setup for the current step's input type
@@ -107,11 +113,11 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
         phone: conversationData.phone || "",
         preferredClinic: conversationData.preferredClinic || "undecided",
         hasImage: conversationData.hasImage || "no",
-        imagePath: conversationData.imagePath || "",
-        imageAnalysis: conversationData.imageAnalysis || "",
+        imagePath: conversationData.imagePath || "", // This currently sends base64 data
+        imageAnalysis: conversationData.footAnalysis?.condition || conversationData.imageAnalysis || "", // Prioritize detailed analysis, fallback to older field
         issueCategory: conversationData.issueCategory || "",
         nailSpecifics: conversationData.nailSpecifics || "",
-        painSpecifics: conversationData.painLocation || "",
+        painSpecifics: conversationData.painLocation || "", // Maps to pain_specifics step value
         heelPainType: conversationData.heelPainType || "",
         archPainType: conversationData.archPainType || "",
         ballFootPainType: conversationData.ballFootPainType || "",
@@ -125,23 +131,23 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
         calendarBooking: conversationData.calendarBooking || "",
         bookingConfirmation: conversationData.bookingConfirmation || "",
         finalQuestion: conversationData.finalQuestion || "",
-        additionalHelp: conversationData.userInput || "",
+        additionalHelp: conversationData.userInput || "", // Maps to additional_help step value
         emojiSurvey: conversationData.emojiSurvey || "",
         surveyResponse: conversationData.surveyResponse || "",
         createdAt: new Date().toISOString(),
         conversationLog: conversationData.conversationLog || [],
-        completedSteps: Object.keys(conversationData)
+        completedSteps: Array.from(new Set((conversationData.conversationLog || []).map((log: { step: string; response: string }) => log.step)))
       };
 
       // Create Basic Auth credentials
-      const credentials = btoa(`:footcare2025`);
+      // const credentials = btoa(`:footcare2025`); // Basic Auth removed as per recommendation
       
       // Send POST request to admin portal
-      const response = await fetch("https://footcareclinicadmin.engageiobots.com/api/consultation", {
+      const response = await fetch("http://localhost:5003/api/webhook/consultation", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Basic ${credentials}`
+          // "Authorization": `Basic ${credentials}` // Basic Auth removed
         },
         body: JSON.stringify(payload)
       });
@@ -173,30 +179,27 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
       safeStepId = "email";
     }
 
-    // Detect if we're about to show the same message again 
-    // This happens when chat is reinitialized or when there are duplicate steps
-    const msgText = chatFlow[safeStepId]?.message;
-    if (msgText && messages.some(m => m.text === msgText && m.type === "bot")) {
-      console.log(`Message "${msgText.substring(0, 20)}..." already displayed, skipping.`);
-      return; // Skip if this exact message has already been shown
-    }
-
     const step = chatFlow[safeStepId];
     if (!step) return;
 
-    // Check if this is the helpful_tips step completion and send data to admin portal
-    if (safeStepId === "helpful_tips" && step.end) {
-      // Send conversation data to admin portal after a short delay
-      setTimeout(async () => {
-        await sendToAdminPortal({
-          ...userData,
-          conversationLog
-        });
-      }, 1000);
+    // Resolve step message (string or function)
+    let resolvedMessageText: string;
+    if (typeof step.message === 'function') {
+      resolvedMessageText = step.message(userData);
+    } else {
+      resolvedMessageText = step.message;
     }
 
+    // Detect if we're about to show the same message again
+    // This happens when chat is reinitialized or when there are duplicate steps
+    if (resolvedMessageText && messages.some((m: Message) => m.text === resolvedMessageText && m.type === "bot")) {
+      console.log(`Message "${resolvedMessageText.substring(0, 20)}..." already displayed, skipping.`);
+      return; // Skip if this exact message has already been shown
+    }
+
+
     // Clear any previous typing indicators first
-    setMessages(prev => prev.map(msg => ({...msg, isTyping: false})));
+    setMessages((prev: Message[]) => prev.map((msg: Message) => ({...msg, isTyping: false})));
 
     setCurrentStep(safeStepId);
 
@@ -204,8 +207,8 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
     if (safeStepId === "image_analysis_results" && userData.footAnalysis) {
       const analysis = userData.footAnalysis;
 
-      // Show bot message
-      addMessage(step.message, "bot");
+      // Show bot message (use resolvedMessageText)
+      addMessage(resolvedMessageText, "bot");
 
       // Display the analysis results after a short delay
       setTimeout(() => {
@@ -238,8 +241,8 @@ ${analysis.disclaimer}
     if (stepId === "symptom_analysis_results" && userData.symptomAnalysisResults) {
       const analysis = userData.symptomAnalysisResults;
 
-      // Show bot message
-      addMessage(step.message, "bot");
+      // Show bot message (use resolvedMessageText)
+      addMessage(resolvedMessageText, "bot");
 
       // Display the analysis results after a short delay
       setTimeout(() => {
@@ -274,8 +277,8 @@ ${analysis.disclaimer}
       return;
     }
 
-    // Standard message handling
-    addMessage(step.message, "bot");
+    // Standard message handling (use resolvedMessageText)
+    addMessage(resolvedMessageText, "bot");
 
     // Handle next steps after a short delay
     setTimeout(() => {
@@ -284,6 +287,9 @@ ${analysis.disclaimer}
         setInputType(null);
         return;
       }
+
+      // If the step is marked for syncing, send the data now.
+      // The timeout gives React time to update state from the previous step.
 
       if (step.delay) {
         setTimeout(() => {
@@ -453,7 +459,7 @@ ${analysis.disclaimer}
         console.log("Attempting to analyze foot image with OpenAI");
 
         // Clear any previous typing indicators
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
 
         // Show a typing indicator while processing
         addMessage("Analyzing your foot condition...", "bot", true);
@@ -471,7 +477,7 @@ ${analysis.disclaimer}
         });
 
         // Clear the typing indicator message
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
 
         if (!response.ok) {
           console.error("API error:", response.status, await response.text());
@@ -526,7 +532,7 @@ ${analysis.disclaimer}
       } catch (analysisError) {
         console.error("Error analyzing image with OpenAI:", analysisError);
         // Clear any typing indicators
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
 
         // Show error message
         addMessage("I was able to upload your image, but I'm having trouble analyzing it right now. Let's continue with the consultation.", "bot");
@@ -543,7 +549,7 @@ ${analysis.disclaimer}
     } catch (error) {
       console.error("Error processing image:", error);
       // Clear any typing indicators
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
 
       addMessage("I couldn't process your image properly. Let's continue with the consultation without it.", "bot");
 
@@ -591,7 +597,7 @@ ${analysis.disclaimer}
         });
 
         // Clear the typing indicator message
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
 
         if (!response.ok) {
           console.error("API error:", response.status);
@@ -618,7 +624,7 @@ ${analysis.disclaimer}
       } catch (analysisError) {
         console.error("Error analyzing symptoms with OpenAI:", analysisError);
         // Clear any typing indicators
-        setMessages(prev => prev.filter(msg => !msg.isTyping));
+        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
 
         // Show error message
         addMessage("I've recorded your symptoms, but I'm having trouble analyzing them right now. Let's continue with the consultation.", "bot");
@@ -639,7 +645,7 @@ ${analysis.disclaimer}
     } catch (error) {
       console.error("Error processing symptoms:", error);
       // Clear any typing indicators
-      setMessages(prev => prev.filter(msg => !msg.isTyping));
+      setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
 
       addMessage("I couldn't process your symptom description. Let's continue with the consultation.", "bot");
 

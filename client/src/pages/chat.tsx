@@ -9,34 +9,40 @@ export default function Chat() {
   const [consultationId, setConsultationId] = useState<number | null>(null);
   const [isEmbedded, setIsEmbedded] = useState(false);
   const [botConfig, setBotConfig] = useState({
-    botName: 'Fiona', 
+    botName: 'Fiona',
+    avatarUrl: '', // Default empty, NurseAvatar will use its internal default
+    welcomeMessage: '', // Default empty, useChat hook handles initial message
+    primaryColor: 'hsl(186, 100%, 30%)', // Default teal
     clinicLocation: 'all',
     allowImageUpload: true,
-    theme: 'teal'
+    // 'theme' is effectively replaced by primaryColor for more direct control
   });
-  
+
   // Check if the chat is being embedded in an iframe on load
   useEffect(() => {
-    // Get URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const embedded = urlParams.get('embedded');
-    
+
     if (embedded === 'true') {
       setIsEmbedded(true);
-      
+
       // Get configuration from URL parameters
-      const botName = urlParams.get('botName');
-      const clinicLocation = urlParams.get('clinicLocation');
-      const allowImageUpload = urlParams.get('allowImageUpload');
-      const theme = urlParams.get('theme');
-      
-      // Update configuration based on URL parameters
-      setBotConfig({
-        botName: botName || 'Fiona',
-        clinicLocation: clinicLocation || 'all',
-        allowImageUpload: allowImageUpload !== 'false',
-        theme: theme || 'teal'
-      });
+      const name = urlParams.get('botName');
+      const avatar = urlParams.get('avatarUrl');
+      const welcome = urlParams.get('welcomeMessage');
+      const color = urlParams.get('primaryColor');
+      const location = urlParams.get('clinicLocation');
+      const imageUpload = urlParams.get('allowImageUpload');
+
+      setBotConfig(prevConfig => ({
+        ...prevConfig,
+        botName: name || prevConfig.botName,
+        avatarUrl: avatar || prevConfig.avatarUrl,
+        welcomeMessage: welcome || prevConfig.welcomeMessage,
+        primaryColor: color || prevConfig.primaryColor,
+        clinicLocation: location || prevConfig.clinicLocation,
+        allowImageUpload: imageUpload !== 'false',
+      }));
     }
   }, []);
   
@@ -148,6 +154,11 @@ export default function Chat() {
         onUpdateConsultation={handleUpdateConsultation}
         onTransferToWhatsApp={handleTransferToWhatsApp}
         isTransferring={transferToWhatsApp.isPending}
+        // Pass theme props
+        botName={botConfig.botName}
+        avatarUrl={botConfig.avatarUrl}
+        welcomeMessage={botConfig.welcomeMessage}
+        primaryColor={botConfig.primaryColor}
       />
     </div>
   );

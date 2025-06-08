@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 // Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const MODEL = "gpt-4o";
@@ -20,6 +20,9 @@ export async function analyzeSymptoms(symptoms: string): Promise<{
   disclaimer: string;
 }> {
   try {
+    if (!openai) {
+      throw new Error("OpenAI API key not configured");
+    }
     // Call OpenAI API for symptom analysis
     const response = await openai.chat.completions.create({
       model: MODEL,

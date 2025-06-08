@@ -20,7 +20,7 @@ export default defineConfig({
     alias: {
       "@db": path.resolve(import.meta.dirname, "db"),
       "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
+      "@shared": path.resolve(import.meta.dirname, "../FootCarePortal-1/shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
   },

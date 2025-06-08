@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import * as schema from "@shared/schema";
+import * as schema from "../../../FootCarePortal-1/shared/schema"; // Corrected relative path
 import { z } from "zod";
 import { generateNurseImage } from "./services/imageGeneration";
 import { analyzeFootImage } from "./services/openai";
@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const consultation = await storage.getConsultationById(id);
           if (consultation) {
             await storage.updateConsultation(id, {
-              imageAnalysis: JSON.stringify(analysis)
+              image_analysis: JSON.stringify(analysis) // Use snake_case to match schema column
             });
             console.log("Saved analysis to consultation ID:", id);
           }
@@ -293,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const consultation = await storage.getConsultationById(id);
           if (consultation) {
             await storage.updateConsultation(id, {
-              symptomAnalysis: JSON.stringify(analysis)
+              symptom_analysis: JSON.stringify(analysis) // Use snake_case to match schema column
             });
           }
         }
@@ -374,7 +374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedConsultation = await storage.updateConsultation(id, {
-        transferredToWhatsApp: "yes"
+        // transferredToWhatsApp: "yes" // Removed as per user feedback
       });
 
       // In a real-world implementation, this is where we would integrate with WhatsApp

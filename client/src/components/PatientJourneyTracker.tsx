@@ -57,11 +57,15 @@ const chatStepToJourneyMap: Record<string, string> = {
 interface PatientJourneyTrackerProps {
   currentChatStep: string;
   className?: string;
+  primaryColor?: string;
 }
 
-export default function PatientJourneyTracker({ 
+const DEFAULT_TRACKER_PRIMARY_COLOR = "hsl(186, 100%, 30%)"; // Default teal
+
+export default function PatientJourneyTracker({
   currentChatStep,
-  className
+  className,
+  primaryColor = DEFAULT_TRACKER_PRIMARY_COLOR
 }: PatientJourneyTrackerProps) {
   // Determine the current journey step
   const currentJourneyStep = chatStepToJourneyMap[currentChatStep] || 'patient_info';
@@ -70,14 +74,17 @@ export default function PatientJourneyTracker({
   const currentIndex = journeySteps.findIndex(step => step.id === currentJourneyStep);
   
   return (
-    <div className={cn("w-full px-4 py-3 bg-gray-50 rounded-lg", className)}>
-      <h3 className="text-sm font-medium text-primary mb-2">Your Consultation Journey</h3>
+    <div className={cn("w-full px-3 py-2 bg-slate-50 rounded-lg shadow-sm", className)}> {/* Adjusted padding and background */}
+      {/* <h3 className="text-xs font-medium text-primary mb-1 text-center md:text-left" style={{ color: primaryColor }}>Consultation Progress</h3> */}
       
-      {/* Progress bar */}
-      <div className="relative h-2 bg-gray-200 rounded-full mb-4 overflow-hidden">
-        <div 
-          className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-500 ease-in-out"
-          style={{ width: `${Math.max(5, ((currentIndex + 1) / journeySteps.length) * 100)}%` }}
+      {/* Progress bar - made more minimal */}
+      <div className="relative h-1.5 bg-gray-200 rounded-full mb-2 overflow-hidden"> {/* Reduced height and margin */}
+        <div
+          className="absolute top-0 left-0 h-full rounded-full transition-all duration-500 ease-in-out"
+          style={{
+            width: `${Math.max(5, ((currentIndex + 1) / journeySteps.length) * 100)}%`,
+            backgroundColor: primaryColor
+          }}
         />
       </div>
       
@@ -99,15 +106,19 @@ export default function PatientJourneyTracker({
               {/* Step indicator */}
               <div 
                 className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full mb-1 text-xs font-medium border-2",
-                  isCompleted ? "bg-primary text-white border-primary" : 
-                  isActive ? "border-primary text-primary" : 
+                  "flex items-center justify-center w-6 h-6 rounded-full mb-0.5 text-xs font-medium border-2", // Reduced size
+                  isCompleted ? `text-white border-transparent` :
+                  isActive ? `text-white border-transparent` :
                   "border-gray-300 text-gray-500 bg-white"
                 )}
+                style={{
+                  backgroundColor: isCompleted || isActive ? primaryColor : 'white',
+                  borderColor: isActive ? primaryColor : (isCompleted ? primaryColor : 'rgb(209 213 219)')
+                }}
               >
                 {isCompleted ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}> {/* Adjusted stroke width */}
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
                   index + 1
@@ -115,12 +126,13 @@ export default function PatientJourneyTracker({
               </div>
               
               {/* Step label - only show for current and adjacent steps on mobile */}
-              <span 
+              <span
                 className={cn(
-                  "text-xs font-medium text-center",
-                  isActive ? "text-primary" : "text-gray-600",
+                  "text-[10px] font-medium text-center", // Reduced font size
+                  isActive ? `text-primary` : "text-gray-500",
                   (index < currentIndex - 1 || index > currentIndex + 1) ? "hidden sm:block" : ""
                 )}
+                style={{ color: isActive ? primaryColor : undefined }}
               >
                 {step.label}
               </span>
@@ -129,12 +141,14 @@ export default function PatientJourneyTracker({
         })}
       </div>
       
-      {/* Current step description */}
-      <div className="mt-3 text-center">
-        <span className="text-xs text-gray-500">
-          {currentIndex >= 0 && `Currently: ${journeySteps[currentIndex].description}`}
-        </span>
-      </div>
+      {/* Current step description - made more subtle */}
+      {currentIndex >= 0 && (
+        <div className="mt-1.5 text-center">
+          <span className="text-[10px] text-gray-500">
+            {journeySteps[currentIndex].label}: {journeySteps[currentIndex].description}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

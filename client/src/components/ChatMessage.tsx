@@ -5,9 +5,12 @@ interface ChatMessageProps {
   message: string;
   type: "bot" | "user";
   isTyping?: boolean;
+  primaryColor?: string; // Added to allow theme color for user messages
 }
 
-const ChatMessage: FC<ChatMessageProps> = ({ message, type, isTyping = false }) => {
+const DEFAULT_USER_BUBBLE_COLOR = "hsl(186, 100%, 30%)"; // Default teal from ChatInterface
+
+const ChatMessage: FC<ChatMessageProps> = ({ message, type, isTyping = false, primaryColor = DEFAULT_USER_BUBBLE_COLOR }) => {
   // To prevent persistent typing indicators, let's add a timeout
   const [isStillTyping, setIsStillTyping] = useState(isTyping);
 
@@ -26,27 +29,31 @@ const ChatMessage: FC<ChatMessageProps> = ({ message, type, isTyping = false }) 
 
   if (type === "bot") {
     return (
-      <div className="flex items-start mb-4">
-        <NurseAvatar size="sm" />
-        <div className="ml-3 bg-white rounded-lg py-2 px-4 max-w-[80%] shadow-sm bounce-in">
+      <div className="flex items-end mb-3 animate-fadeIn"> {/* Use items-end for bubble to align with avatar bottom if avatar is taller */}
+        <NurseAvatar size="sm" /> {/* Assuming NurseAvatar is styled appropriately */}
+        <div className="ml-2 bg-white rounded-xl py-3 px-4 max-w-[75%] shadow-md"> {/* Rounded corners, shadow, padding */}
           {isStillTyping ? (
-            <div className="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
+            <div className="flex space-x-1 py-1"> {/* Pulsing dots typing indicator */}
+              <span className="h-2 w-2 bg-gray-400 rounded-full animate-pulse delay-0"></span>
+              <span className="h-2 w-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
+              <span className="h-2 w-2 bg-gray-400 rounded-full animate-pulse delay-300"></span>
             </div>
           ) : (
-            <p className="text-sm text-gray-800">{message}</p>
+            <p className="text-sm text-gray-700 leading-relaxed">{message}</p>
           )}
         </div>
       </div>
     );
   }
 
+  // User message
   return (
-    <div className="flex items-start justify-end mb-4">
-      <div className="mr-3 bg-primary text-white rounded-lg py-2 px-4 max-w-[80%] shadow-sm bounce-in">
-        <p className="text-sm">{message}</p>
+    <div className="flex items-end justify-end mb-3 animate-fadeIn">
+      <div
+        className="mr-2 text-white rounded-xl py-3 px-4 max-w-[75%] shadow-md" // Rounded corners, shadow, padding
+        style={{ backgroundColor: primaryColor }}
+      >
+        <p className="text-sm leading-relaxed">{message}</p> {/* Typography: line height */}
       </div>
       <div className="flex-shrink-0 h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
         <svg 

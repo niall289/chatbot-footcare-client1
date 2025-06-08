@@ -11,15 +11,19 @@ interface UserInputProps {
   onSubmit: (value: string) => void;
   validate?: (value: string) => { isValid: boolean; errorMessage?: string };
   currentData?: Record<string, any>;
+  primaryColor?: string;
 }
 
-export default function UserInput({ 
-  type, 
-  disabled = false, 
+const DEFAULT_INPUT_PRIMARY_COLOR = "hsl(186, 100%, 30%)"; // Default teal
+
+export default function UserInput({
+  type,
+  disabled = false,
   isWaiting = false,
   onSubmit,
   validate,
-  currentData 
+  currentData,
+  primaryColor = DEFAULT_INPUT_PRIMARY_COLOR
 }: UserInputProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | undefined>(undefined);
@@ -83,11 +87,13 @@ export default function UserInput({
           type="text" 
           disabled={true}
           placeholder="Waiting for options..."
-          className="flex-1 border border-gray-300 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="flex-1 border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:border-transparent"
+          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties} // Use primaryColor for focus ring
         />
-        <Button 
+        <Button
           disabled={true}
-          className="bg-primary hover:bg-primary-dark text-white rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-primary-light disabled:opacity-50"
+          className="text-white rounded-lg p-3 focus:outline-none focus:ring-2 disabled:opacity-50"
+          style={{ backgroundColor: primaryColor, '--tw-ring-color': primaryColor } as React.CSSProperties}
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
@@ -118,27 +124,29 @@ export default function UserInput({
           onKeyDown={handleTextareaKeyPress}
           disabled={disabled || isWaiting}
           placeholder="Type your message..."
-          className="w-full border border-gray-300 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent h-24 resize-none"
+          className="w-full border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:border-transparent h-24 resize-none"
+          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
         />
         {error && (
-          <div className="flex items-center mt-1 text-destructive text-xs">
+          <div className="flex items-center mt-1 text-red-600 text-xs"> {/* Standardized error color */}
             <AlertCircle className="h-3 w-3 mr-1" />
             <span>{error}</span>
           </div>
         )}
         <div className="flex justify-end space-x-2 mt-2">
-          <Button 
+          <Button
             variant="outline"
-            onClick={() => onSubmit("(Skipped)")}
+            onClick={() => onSubmit("(Skipped)")} // Consider if skip should also use primaryColor for consistency or a neutral
             disabled={disabled || isWaiting}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="text-gray-700 border-gray-300 hover:bg-gray-100 font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400"
           >
             Skip
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={disabled || isWaiting}
-            className="bg-primary hover:bg-primary-dark text-white font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-light"
+            className="text-white font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2"
+            style={{ backgroundColor: primaryColor, '--tw-ring-color': primaryColor } as React.CSSProperties}
           >
             Submit
           </Button>
@@ -158,12 +166,14 @@ export default function UserInput({
           onKeyDown={handleKeyPress}
           disabled={disabled || isWaiting}
           placeholder={`Type your ${type === "tel" ? "phone number" : type === "email" ? "email" : "message"}...`}
-          className="flex-1 border border-gray-300 rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+          className="flex-1 border border-gray-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:border-transparent" // Changed to rounded-lg
+          style={{ '--tw-ring-color': primaryColor } as React.CSSProperties}
         />
-        <Button 
+        <Button
           onClick={handleSubmit}
           disabled={disabled || isWaiting}
-          className="bg-primary hover:bg-primary-dark text-white rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-primary-light disabled:opacity-50"
+          className="text-white rounded-lg p-3 focus:outline-none focus:ring-2 disabled:opacity-50" // Changed to rounded-lg and adjusted padding
+          style={{ backgroundColor: primaryColor, '--tw-ring-color': primaryColor } as React.CSSProperties}
         >
           <svg 
             xmlns="http://www.w3.org/2000/svg" 
@@ -182,7 +192,7 @@ export default function UserInput({
         </Button>
       </div>
       {error && (
-        <div className="flex items-center mt-1 text-destructive text-xs ml-4">
+        <div className="flex items-center mt-1 text-red-600 text-xs ml-4"> {/* Standardized error color */}
           <AlertCircle className="h-3 w-3 mr-1" />
           <span>{error}</span>
         </div>

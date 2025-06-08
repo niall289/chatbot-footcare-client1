@@ -18,15 +18,28 @@ interface ChatInterfaceProps {
   onUpdateConsultation: (data: Partial<Consultation>) => void;
   onTransferToWhatsApp: () => void;
   isTransferring: boolean;
+  // Theme props
+  primaryColor?: string;
+  botName?: string;
+  avatarUrl?: string;
+  welcomeMessage?: string; // Note: Welcome message is currently handled by useChat hook
 }
 
-export default function ChatInterface({ 
-  consultationId, 
-  consultation, 
-  onCreateConsultation, 
+const DEFAULT_PRIMARY_COLOR = "hsl(186, 100%, 30%)"; // Default teal color
+const DEFAULT_BOT_NAME = "Fiona";
+const DEFAULT_AVATAR_URL = ""; // Let NurseAvatar handle default if empty
+
+export default function ChatInterface({
+  consultationId,
+  consultation,
+  onCreateConsultation,
   onUpdateConsultation,
   onTransferToWhatsApp,
-  isTransferring
+  isTransferring,
+  primaryColor = DEFAULT_PRIMARY_COLOR,
+  botName = DEFAULT_BOT_NAME,
+  avatarUrl = DEFAULT_AVATAR_URL,
+  // welcomeMessage prop is available but not directly used here yet
 }: ChatInterfaceProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [showWhatsAppButton, setShowWhatsAppButton] = useState(false);
@@ -85,13 +98,20 @@ export default function ChatInterface({
   }, [messages, options]);
 
   return (
-    <div className="w-full max-w-lg bg-white rounded-xl shadow-lg overflow-hidden flex flex-col h-[650px] md:h-[700px]">
+    <div
+      className="w-full md:max-w-lg bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col
+                 h-screen md:h-[700px] md:max-h-[90vh] fixed md:static bottom-0 left-0 right-0 md:bottom-auto md:left-auto md:right-auto" // Responsive sizing
+      style={{ fontFamily: "'Inter', sans-serif" }} // Apply modern font
+    >
       {/* Chat Header */}
-      <div className="bg-primary px-6 py-4 flex items-center shadow-md">
-        <NurseAvatar size="md" />
+      <div
+        className="px-6 py-4 flex items-center shadow-md"
+        style={{ backgroundColor: primaryColor }}
+      >
+        <NurseAvatar size="md" avatarUrl={avatarUrl} />
         <div className="ml-3">
-          <h2 className="text-white font-semibold text-lg">Fiona</h2>
-          <p className="text-primary-light text-sm">FootCare Clinic Nurse</p>
+          <h2 className="text-white font-semibold text-lg">{botName}</h2>
+          <p className="text-white opacity-80 text-sm">FootCare Clinic Assistant</p> {/* Adjusted text color for better contrast */}
         </div>
         <div className="ml-auto">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -102,29 +122,32 @@ export default function ChatInterface({
 
       {/* Patient Journey Tracker */}
       {currentStep && currentStep !== 'welcome' && (
-        <PatientJourneyTracker 
-          currentChatStep={currentStep} 
-          className="mx-4 mt-4"
+        <PatientJourneyTracker
+          currentChatStep={currentStep}
+          className="mx-2 mt-2 md:mx-4 md:mt-3" // Adjusted margins
+          primaryColor={primaryColor} // Pass primaryColor
         />
       )}
 
       {/* Chat Messages Container */}
       <div 
         ref={chatContainerRef}
-        className="chat-container flex-1 overflow-y-auto p-4 bg-neutral-light"
+        className="chat-container flex-1 overflow-y-auto p-4 bg-gradient-to-br from-white to-slate-50" // Light gradient background
+        style={{ paddingBottom: '1rem' }} // Ensure padding at the very bottom
       >
-        <div className="space-y-4">
+        <div className="space-y-3"> {/* Adjusted spacing between messages */}
           {messages.map((message, index) => (
             <ChatMessage 
-              key={index} 
-              message={message.text} 
-              type={message.type} 
-              isTyping={message.isTyping} 
+              key={index}
+              message={message.text}
+              type={message.type}
+              isTyping={message.isTyping}
+              primaryColor={primaryColor} // Pass primaryColor
             />
           ))}
 
           {options && options.length > 0 && (
-            <ChatOptions options={options} onSelect={handleOptionSelect} />
+            <ChatOptions options={options} onSelect={handleOptionSelect} primaryColor={primaryColor} /> // Pass primaryColor
           )}
 
           {/* Display AnalysisResults when foot image analysis is available */}
@@ -155,6 +178,7 @@ export default function ChatInterface({
             onSubmit={currentStep === "symptom_description" ? handleSymptomAnalysis : handleUserInput}
             validate={validate}
             currentData={currentData}
+            primaryColor={primaryColor} // Pass primaryColor
           />
         )}
 

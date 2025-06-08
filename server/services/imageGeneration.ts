@@ -2,26 +2,43 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openai: OpenAI | null = null;
+
+if (process.env.OPENAI_API_KEY) {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+} else {
+  console.warn("OPENAI_API_KEY is not set. Image generation will be skipped or use cached/placeholder images.");
+}
 
 /**
  * Generate an image of a friendly Irish nurse for the chatbot
  * @returns Base64 encoded image data
  */
 export async function generateNurseImage(): Promise<string> {
-  try {
-    const cachePath = path.join(process.cwd(), "public", "fiona-nurse-avatar.png");
-    
-    // Check if we've already generated and cached the image
-    if (fs.existsSync(cachePath)) {
-      console.log("Using cached nurse image");
-      const imageBuffer = fs.readFileSync(cachePath);
-      return imageBuffer.toString("base64");
+  const cachePath = path.join(process.cwd(), "public", "fiona-nurse-avatar.png"); // Ensure this path is correct relative to where the server runs
+  const assetsCachePath = path.join(process.cwd(), "client", "public", "assets", "images", "nurse-fiona.png"); // Fallback to existing asset
+
+  // Check if we've already generated and cached the image in public
+  if (fs.existsSync(cachePath)) {
+    console.log("Using cached nurse image from public/fiona-nurse-avatar.png");
+    const imageBuffer = fs.readFileSync(cachePath);
+    return imageBuffer.toString("base64");
+  }
+
+  if (!openai) {
+    console.warn("OpenAI client not initialized. Attempting to use fallback asset image.");
+    if (fs.existsSync(assetsCachePath)) {
+        console.log("Using fallback nurse image from client/public/assets/images/nurse-fiona.png");
+        const imageBuffer = fs.readFileSync(assetsCachePath);
+        return imageBuffer.toString("base64");
     }
-    
-    // Generate a new image if not cached
+    throw new Error("OpenAI client not initialized and fallback image not found. Cannot provide nurse image.");
+  }
+
+  try {
+    // Generate a new image if not cached and OpenAI client is available
     console.log("Generating new nurse image with DALL-E");
     const response = await openai.images.generate({
       model: "dall-e-3",
@@ -59,7 +76,13 @@ export async function generateNurseImage(): Promise<string> {
     
     return imageData;
   } catch (error) {
-    console.error("Error generating nurse image:", error);
-    throw new Error("Failed to generate nurse image. Please try again later.");
+    console.error("Error generating nurse image with OpenAI:", error);
+    console.warn("Attempting to use fallback asset image due to OpenAI error.");
+    if (fs.existsSync(assetsCachePath)) {
+        console.log("Using fallback nurse image from client/public/assets/images/nurse-fiona.png");
+        const imageBuffer = fs.readFileSync(assetsCachePath);
+        return imageBuffer.toString("base64");
+    }
+    throw new Error("Failed to generate nurse image with OpenAI and fallback image not found.");
   }
 }
