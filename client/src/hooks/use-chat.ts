@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { chatFlow, chatStepToField, type ChatOption } from "@/lib/chatFlow";
-import { nameSchema, phoneSchema, emailSchema, insertConsultationSchema, InsertConsultation } from "@shared/schema";
+import { nameSchema, phoneSchema, emailSchema, insertConsultationSchema, InsertConsultation } from "../../../shared/schema";
 
 interface Message {
   text: string;
