@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { chatFlow, chatStepToField, type ChatOption } from "@/lib/chatFlow";
-import { nameSchema, phoneSchema, emailSchema } from "@shared/schema";
+import { nameSchema, phoneSchema, emailSchema, insertConsultationSchema, InsertConsultation } from "@shared/schema";
 
 interface Message {
   text: string;
@@ -24,67 +24,44 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
   const [userData, setUserData] = useState<Record<string, any>>({});
   const [conversationLog, setConversationLog] = useState<{step: string, response: string}[]>([]);
 
-  // Add a message to the chat with duplicate prevention
   const addMessage = useCallback((text: string, type: "bot" | "user", isTyping = false) => {
-    // Don't add duplicate messages - especially important for bot messages
     setMessages((prev: Message[]) => {
-      // Check if this exact message (same text and type) already exists
       const isDuplicate = prev.some((msg: Message) =>
-        msg.text === text &&
-        msg.type === type &&
-        !msg.isTyping
+        msg.text === text && msg.type === type && !msg.isTyping
       );
-
       if (isDuplicate) {
         console.log(`Prevented duplicate message: "${text.substring(0, 20)}..."`);
-        return prev; // Return unchanged array if duplicate
+        return prev;
       }
-
       return [...prev, { text, type, isTyping }];
     });
   }, []);
 
-  // Forward declaration for processStep using useRef
   const processStepRef = useRef<(stepId: string) => void>(() => {});
 
-  // Update user data and save to parent component
   const updateUserData = useCallback((step: string, value: string, displayValue: string) => {
-    // Map step to database field
     const field = chatStepToField[step];
-
-    // Make a fresh copy of userData to avoid reference issues
     const updatedData = { ...userData };
-    if (field) {
-      updatedData[field] = value;
-    }
+    if (field) updatedData[field] = value;
 
-    // Update conversation log
     const updatedLog = [...conversationLog, { step, response: value }];
     setConversationLog(updatedLog);
-
-    // Update the userData state
     setUserData(updatedData);
 
-    // Determine if this is a complete submission point
-    const isComplete = false; // This is not used for submission triggering
-
-    // Call parent callback with data
+    const isComplete = false;
     onSaveData({
       ...updatedData,
       conversationLog: updatedLog
     }, isComplete);
 
-    // If the step is marked for syncing, send the data now.
     const stepConfig = chatFlow[step];
     if (stepConfig?.syncToPortal) {
       sendToAdminPortal({ ...updatedData, conversationLog: updatedLog });
     }
   }, [userData, conversationLog, onSaveData]);
 
-  // Handle setup for the current step's input type
   const setupStepInput = useCallback((step: any) => {
     setShowImageUpload(!!step.imageUpload);
-
     if (step.options) {
       setOptions(step.options);
       setInputType(null);
@@ -97,59 +74,22 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
       const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
       if (nextStepId) processStepRef.current(nextStepId);
     }
-
     setIsWaitingForResponse(false);
-  }, [processStepRef]);
+  }, []);
 
-  // Function to send conversation data to admin portal
   const sendToAdminPortal = useCallback(async (conversationData: Record<string, any>) => {
     try {
       console.log("Sending conversation data to admin portal...");
-      
-      // Create the payload matching the required structure
-      const payload = {
-        name: conversationData.name || "",
-        email: conversationData.email || "",
-        phone: conversationData.phone || "",
-        preferredClinic: conversationData.preferredClinic || "undecided",
-        hasImage: conversationData.hasImage || "no",
-        imagePath: conversationData.imagePath || "", // This currently sends base64 data
-        imageAnalysis: conversationData.footAnalysis?.condition || conversationData.imageAnalysis || "", // Prioritize detailed analysis, fallback to older field
-        issueCategory: conversationData.issueCategory || "",
-        nailSpecifics: conversationData.nailSpecifics || "",
-        painSpecifics: conversationData.painLocation || "", // Maps to pain_specifics step value
-        heelPainType: conversationData.heelPainType || "",
-        archPainType: conversationData.archPainType || "",
-        ballFootPainType: conversationData.ballFootPainType || "",
-        toePainType: conversationData.toePainType || "",
-        anklePainType: conversationData.anklePainType || "",
-        entireFootPainType: conversationData.entireFootPainType || "",
-        skinSpecifics: conversationData.skinSpecifics || "",
-        structuralSpecifics: conversationData.structuralSpecifics || "",
-        symptomDescription: conversationData.symptomDescription || "",
-        previousTreatment: conversationData.previousTreatment || "",
-        calendarBooking: conversationData.calendarBooking || "",
-        bookingConfirmation: conversationData.bookingConfirmation || "",
-        finalQuestion: conversationData.finalQuestion || "",
-        additionalHelp: conversationData.userInput || "", // Maps to additional_help step value
-        emojiSurvey: conversationData.emojiSurvey || "",
-        surveyResponse: conversationData.surveyResponse || "",
-        createdAt: new Date().toISOString(),
-        conversationLog: conversationData.conversationLog || [],
-        completedSteps: Array.from(new Set((conversationData.conversationLog || []).map((log: { step: string; response: string }) => log.step)))
-      };
+      const validated = insertConsultationSchema.safeParse(conversationData);
+      if (!validated.success) {
+        console.error("Validation failed:", validated.error);
+        return;
+      }
 
-      // Create Basic Auth credentials
-      // const credentials = btoa(`:footcare2025`); // Basic Auth removed as per recommendation
-      
-      // Send POST request to admin portal
       const response = await fetch("http://localhost:5003/api/webhook/consultation", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // "Authorization": `Basic ${credentials}` // Basic Auth removed
-        },
-        body: JSON.stringify(payload)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(validated.data)
       });
 
       if (response.ok) {
@@ -162,503 +102,87 @@ export function useChat({ onSaveData, onImageUpload, consultationId }: UseChatPr
     }
   }, []);
 
-  // Process a step in the chat flow
   const processStep = useCallback((stepId: string) => {
-    // Safety check - prevent going back to asking name if we already have it
     let safeStepId = stepId;
-
-    // Strict prevention of duplicate steps
-    if (stepId === "name" && userData.name) {
-      console.log("Prevented duplicate name request in processStep - redirecting to phone step");
-      safeStepId = "phone";
-    }
-
-    // Also prevent phone number being asked twice
-    if (stepId === "phone" && userData.phone) {
-      console.log("Prevented duplicate phone request in processStep - redirecting to email step");
-      safeStepId = "email";
-    }
+    if (stepId === "name" && userData.name) safeStepId = "phone";
+    if (stepId === "phone" && userData.phone) safeStepId = "email";
 
     const step = chatFlow[safeStepId];
     if (!step) return;
 
-    // Resolve step message (string or function)
-    let resolvedMessageText: string;
-    if (typeof step.message === 'function') {
-      resolvedMessageText = step.message(userData);
-    } else {
-      resolvedMessageText = step.message;
-    }
+    let resolvedMessageText: string = typeof step.message === 'function' ? step.message(userData) : step.message;
+    if (messages.some((m: Message) => m.text === resolvedMessageText && m.type === "bot")) return;
 
-    // Detect if we're about to show the same message again
-    // This happens when chat is reinitialized or when there are duplicate steps
-    if (resolvedMessageText && messages.some((m: Message) => m.text === resolvedMessageText && m.type === "bot")) {
-      console.log(`Message "${resolvedMessageText.substring(0, 20)}..." already displayed, skipping.`);
-      return; // Skip if this exact message has already been shown
-    }
-
-
-    // Clear any previous typing indicators first
     setMessages((prev: Message[]) => prev.map((msg: Message) => ({...msg, isTyping: false})));
-
     setCurrentStep(safeStepId);
 
-    // Custom handling for image analysis results
-    if (safeStepId === "image_analysis_results" && userData.footAnalysis) {
-      const analysis = userData.footAnalysis;
-
-      // Show bot message (use resolvedMessageText)
-      addMessage(resolvedMessageText, "bot");
-
-      // Display the analysis results after a short delay
-      setTimeout(() => {
-        const analysisMessage = `
-Based on my analysis, it appears you may have ${analysis.condition} 
-(${analysis.severity} severity).
-
-Recommendations:
-${analysis.recommendations.map((rec: string) => `• ${rec}`).join('\n')}
-
-${analysis.disclaimer}
-        `;
-
-        addMessage(analysisMessage.trim(), "bot");
-
-        // Move to the next step
-        if (step.delay) {
-          setTimeout(() => {
-            setupStepInput(step);
-          }, step.delay);
-        } else {
-          setupStepInput(step);
-        }
-      }, 1000);
-
-      return;
-    }
-
-    // Custom handling for symptom analysis results
-    if (stepId === "symptom_analysis_results" && userData.symptomAnalysisResults) {
-      const analysis = userData.symptomAnalysisResults;
-
-      // Show bot message (use resolvedMessageText)
-      addMessage(resolvedMessageText, "bot");
-
-      // Display the analysis results after a short delay
-      setTimeout(() => {
-        const conditionsText = analysis.potentialConditions.length > 1 
-          ? `Based on your symptoms, you may have one of the following conditions: ${analysis.potentialConditions.join(", ")}`
-          : `Based on your symptoms, you may have ${analysis.potentialConditions[0]}`;
-
-        const analysisMessage = `
-${conditionsText} 
-(${analysis.severity} severity, ${analysis.urgency} priority).
-
-${analysis.recommendation}
-
-Next steps:
-${analysis.nextSteps.map((step: string) => `• ${step}`).join('\n')}
-
-${analysis.disclaimer}
-        `;
-
-        addMessage(analysisMessage, "bot");
-
-        // Handle next steps
-        if (step.delay) {
-          setTimeout(() => {
-            setupStepInput(step);
-          }, step.delay);
-        } else {
-          setupStepInput(step);
-        }
-      }, 1000);
-
-      return;
-    }
-
-    // Standard message handling (use resolvedMessageText)
     addMessage(resolvedMessageText, "bot");
 
-    // Handle next steps after a short delay
     setTimeout(() => {
       if (step.end) {
         setOptions(null);
         setInputType(null);
         return;
       }
-
-      // If the step is marked for syncing, send the data now.
-      // The timeout gives React time to update state from the previous step.
-
-      if (step.delay) {
-        setTimeout(() => {
-          setupStepInput(step);
-        }, step.delay);
-      } else {
-        setupStepInput(step);
-      }
+      step.delay ? setTimeout(() => setupStepInput(step), step.delay) : setupStepInput(step);
     }, 500);
   }, [addMessage, setupStepInput, userData, conversationLog, sendToAdminPortal]);
 
-  // Update the ref to the actual processStep function
-  useEffect(() => {
-    processStepRef.current = processStep;
-  }, [processStep]);
+  useEffect(() => { processStepRef.current = processStep; }, [processStep]);
+  useEffect(() => { if (messages.length === 0) processStep("welcome"); }, []);
 
-  // Start the conversation - run only ONCE at initialization
-  useEffect(() => {
-    // Only start the conversation when there are no messages
-    // This prevents the chat from restarting on re-renders
-    if (messages.length === 0) {
-      processStep("welcome");
-    }
-  }, []);
-
-  // Handle user selecting an option
   const handleOptionSelect = useCallback((option: ChatOption) => {
     const step = chatFlow[currentStep];
-
-    // Show user selection
     addMessage(option.text, "user");
-
-    // Save response
     updateUserData(currentStep, option.value, option.text);
-
-    // Clear options
     setOptions(null);
     setIsWaitingForResponse(true);
 
-    // Move to next step
     setTimeout(() => {
-      // Get the next step ID but validate it's not asking for the name again
       let nextStepId = typeof step.next === 'function' ? step.next(option.value) : step.next;
-
-      // Special validation: prevent going back to asking name or phone after we have it
-      if (nextStepId === "name" && userData.name) {
-        console.log("Prevented duplicate name request in options - redirecting to phone step");
-        nextStepId = "phone";
-      }
-
-      // Prevent phone being asked twice
-      if (nextStepId === "phone" && userData.phone) {
-        console.log("Prevented duplicate phone request in options - redirecting to email step");
-        nextStepId = "email";
-      }
-
+      if (nextStepId === "name" && userData.name) nextStepId = "phone";
+      if (nextStepId === "phone" && userData.phone) nextStepId = "email";
       if (nextStepId) processStep(nextStepId);
     }, 500);
   }, [currentStep, addMessage, processStep, updateUserData, userData]);
 
-  // Handle user submitting input
   const handleUserInput = useCallback((value: string) => {
     const step = chatFlow[currentStep];
-
-    // Show user message
     addMessage(value, "user");
-
-    // Save response
     updateUserData(currentStep, value, value);
-
-    // Clear input
     setInputType(null);
     setIsWaitingForResponse(true);
 
-    // Move to next step
     setTimeout(() => {
-      // Get the next step ID but validate it's not asking for the name again
       let nextStepId = typeof step.next === 'function' ? step.next(value) : step.next;
-
-      // Special validation: prevent going back to asking name after we have it
-      if (nextStepId === "name" && userData.name) {
-        console.log("Prevented duplicate name request - redirecting to phone step");
-        nextStepId = "phone";
-      }
-
-      // Prevent phone being asked twice
-      if (nextStepId === "phone" && userData.phone) {
-        console.log("Prevented duplicate phone request - redirecting to email step");
-        nextStepId = "email";
-      }
-
+      if (nextStepId === "name" && userData.name) nextStepId = "phone";
+      if (nextStepId === "phone" && userData.phone) nextStepId = "email";
       if (nextStepId) processStep(nextStepId);
     }, 500);
   }, [currentStep, addMessage, processStep, updateUserData, userData]);
 
-  // Validation function for form inputs
   const validate = useCallback((value: string) => {
     if (!inputType) return { isValid: true };
-
     const step = chatFlow[currentStep];
     if (step.validation) {
       const isValid = step.validation(value);
-      return { 
-        isValid, 
-        errorMessage: isValid ? undefined : step.errorMessage 
-      };
+      return { isValid, errorMessage: isValid ? undefined : step.errorMessage };
     }
 
     if (inputType === 'text' && currentStep === 'name') {
       const result = nameSchema.safeParse(value);
-      return {
-        isValid: result.success,
-        errorMessage: result.success ? undefined : "Name must be at least 2 characters"
-      };
+      return { isValid: result.success, errorMessage: result.success ? undefined : "Name must be at least 2 characters" };
     }
-
     if (inputType === 'tel') {
       const result = phoneSchema.safeParse(value);
-      return {
-        isValid: result.success,
-        errorMessage: result.success ? undefined : "Please enter a valid phone number (10-15 digits)"
-      };
+      return { isValid: result.success, errorMessage: result.success ? undefined : "Please enter a valid phone number (10-15 digits)" };
     }
-
     if (inputType === 'email') {
       const result = emailSchema.safeParse(value);
-      return {
-        isValid: result.success,
-        errorMessage: result.success ? undefined : "Please enter a valid email address"
-      };
+      return { isValid: result.success, errorMessage: result.success ? undefined : "Please enter a valid email address" };
     }
-
     return { isValid: true };
   }, [currentStep, inputType]);
-
-  // Handle image uploads
-  const handleImageUpload = useCallback(async (file: File) => {
-    if (!onImageUpload) {
-      console.error("Image upload not supported");
-      return;
-    }
-
-    setIsWaitingForResponse(true);
-
-    try {
-      // Add a message to show we're processing the image
-      addMessage("Uploading and analyzing your image...", "bot", true);
-
-      // Upload the image and get the base64 string
-      const imageData = await onImageUpload(file);
-
-      // Add a confirmation message
-      addMessage("Image uploaded successfully", "user");
-
-      // Update user data with image info
-      const updatedData = { 
-        ...userData,
-        hasImage: "yes",
-        imagePath: imageData
-      };
-
-      // Show a processing message
-      addMessage("Processing your foot image. This may take a moment...", "bot");
-
-      // Now let's try to analyze the image with OpenAI
-      try {
-        console.log("Attempting to analyze foot image with OpenAI");
-
-        // Clear any previous typing indicators
-        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
-
-        // Show a typing indicator while processing
-        addMessage("Analyzing your foot condition...", "bot", true);
-
-        // Call the API for image analysis
-        const response = await fetch('/api/analyze-foot-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            imageBase64: imageData.replace(/^data:image\/\w+;base64,/, ''),
-            consultationId: typeof consultationId === 'number' ? consultationId : undefined
-          }),
-        });
-
-        // Clear the typing indicator message
-        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
-
-        if (!response.ok) {
-          console.error("API error:", response.status, await response.text());
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        const analysisData = await response.json();
-        console.log("Received image analysis:", analysisData);
-
-        // Check if we received a fallback response or an actual analysis
-        const isRealAnalysis = 
-          analysisData.condition !== "Unable to analyze image at this time" && 
-          analysisData.severity !== "unknown";
-
-        // Save analysis data regardless of whether it's a fallback or not
-        const updatedWithAnalysis = { 
-          ...updatedData,
-          footAnalysis: analysisData 
-        };
-        setUserData(updatedWithAnalysis);
-
-        if (isRealAnalysis) {
-          // If we got real analysis, move to the image_analysis_results step
-          // The AnalysisResults component will display the detailed analysis there
-          const step = chatFlow[currentStep];
-          const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-          if (nextStepId) processStep(nextStepId);
-        } else {
-          // If we got a fallback, show an error message and continue
-          addMessage("I was able to upload your image, but couldn't analyze it in detail at this time. Let's continue with your consultation.", "bot");
-
-          // Skip the image_analysis_results step and go straight to the next step
-          const step = chatFlow[currentStep];
-          const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-          if (nextStepId === "image_analysis_results") {
-            // Skip ahead to the step after image_analysis_results
-            const skipStep = chatFlow["image_analysis_results"];
-            const skipToStepId = typeof skipStep.next === 'function' ? skipStep.next("") : skipStep.next;
-
-            setTimeout(() => {
-              if (skipToStepId) processStep(skipToStepId);
-            }, 1500);
-          } else if (nextStepId) {
-            setTimeout(() => {
-              processStep(nextStepId);
-            }, 1500);
-          }
-        }
-
-        return;
-
-      } catch (analysisError) {
-        console.error("Error analyzing image with OpenAI:", analysisError);
-        // Clear any typing indicators
-        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
-
-        // Show error message
-        addMessage("I was able to upload your image, but I'm having trouble analyzing it right now. Let's continue with the consultation.", "bot");
-
-        // Still save the image data
-        setUserData(updatedData);
-
-        // Skip the image_analysis_results step and go straight to issue_category
-        setTimeout(() => {
-          processStep("issue_category");
-        }, 1500);
-      }
-
-    } catch (error) {
-      console.error("Error processing image:", error);
-      // Clear any typing indicators
-      setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
-
-      addMessage("I couldn't process your image properly. Let's continue with the consultation without it.", "bot");
-
-      // Still move to next step even if upload fails
-      const step = chatFlow[currentStep];
-      setTimeout(() => {
-        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-        if (nextStepId) processStep(nextStepId);
-      }, 1000);
-    } finally {
-      setShowImageUpload(false);
-      setIsWaitingForResponse(false);
-    }
-  }, [currentStep, userData, onImageUpload, addMessage, processStep]);
-
-  // Handle symptom analysis
-  const handleSymptomAnalysis = useCallback(async (symptoms: string) => {
-    setIsWaitingForResponse(true);
-
-    try {
-      // Add a message to show we're analyzing
-      addMessage("Analyzing your symptoms...", "bot", true);
-
-      // Add the user's message
-      addMessage(symptoms, "user");
-
-      // Store the symptom description in user data
-      const updatedData = { 
-        ...userData,
-        hasSymptomDescription: "yes",
-        symptomDescription: symptoms
-      };
-
-      // Now try to analyze the symptoms with OpenAI
-      try {
-        console.log("Attempting to analyze symptoms with OpenAI");
-        const response = await fetch('/api/analyze-symptoms', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            symptoms: symptoms
-          }),
-        });
-
-        // Clear the typing indicator message
-        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
-
-        if (!response.ok) {
-          console.error("API error:", response.status);
-          throw new Error(`API error: ${response.status}`);
-        }
-
-        const analysisData = await response.json();
-        console.log("Received symptom analysis:", analysisData);
-
-        // Save analysis data
-        const updatedWithAnalysis = {
-          ...updatedData,
-          symptomAnalysisResults: analysisData
-        };
-        setUserData(updatedWithAnalysis);
-
-        // Add a success message
-        addMessage("Thank you for describing your symptoms. I've analyzed them and will provide some insights.", "bot");
-
-        // Proceed to the analysis results step
-        processStep("symptom_analysis_results");
-        return;
-
-      } catch (analysisError) {
-        console.error("Error analyzing symptoms with OpenAI:", analysisError);
-        // Clear any typing indicators
-        setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
-
-        // Show error message
-        addMessage("I've recorded your symptoms, but I'm having trouble analyzing them right now. Let's continue with the consultation.", "bot");
-
-        // Still save the symptom data
-        setUserData(updatedData);
-
-        // Move to next step without analysis
-        const step = chatFlow[currentStep];
-        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-        if (nextStepId) {
-          setTimeout(() => {
-            processStep(nextStepId);
-          }, 1000);
-        }
-      }
-
-    } catch (error) {
-      console.error("Error processing symptoms:", error);
-      // Clear any typing indicators
-      setMessages((prev: Message[]) => prev.filter((msg: Message) => !msg.isTyping));
-
-      addMessage("I couldn't process your symptom description. Let's continue with the consultation.", "bot");
-
-      // Move to next step even if there's an error
-      const step = chatFlow[currentStep];
-      setTimeout(() => {
-        const nextStepId = typeof step.next === 'function' ? step.next("") : step.next;
-        if (nextStepId) processStep(nextStepId);
-      }, 1000);
-    } finally {
-      setIsWaitingForResponse(false);
-    }
-  }, [currentStep, userData, addMessage, processStep]);
 
   return {
     messages,
@@ -670,8 +194,6 @@ ${analysis.disclaimer}
     isWaitingForResponse,
     handleUserInput,
     handleOptionSelect,
-    handleImageUpload,
-    handleSymptomAnalysis,
     validate,
     currentStep
   };
