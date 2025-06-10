@@ -16,7 +16,6 @@ export type ChatStep = {
   errorMessage?: string;
   options?: ChatOption[];
   optional?: boolean;
-  showWhatsApp?: boolean;
   component?: string;
   syncToPortal?: boolean;
 } & (
